@@ -126,9 +126,11 @@ public final class VisualMenuScreen extends Screen {
             if (chosen) context.fill(listX - 5, y, listX - 3, y + 29, VisualConfig.get().accentColor);
             context.drawTextWithShadow(textRenderer, entry.label, listX + 5, y + 5, 0xFFF0F4FA);
             context.drawTextWithShadow(textRenderer, entry.description, listX + 5, y + 17, 0xFF8190A5);
-            int toggleColor = active ? 0xFF59D69D : 0xFF526176;
-            context.fill(listX + listW - 31, y + 8, listX + listW - 8, y + 21, toggleColor);
-            context.fill(listX + listW - (active ? 14 : 29), y + 10, listX + listW - (active ? 10 : 25), y + 19, 0xFFFFFFFF);
+            int toggleColor = active ? 0xFF167A59 : 0xFF39485B;
+            context.fill(listX + listW - 43, y + 6, listX + listW - 5, y + 23, toggleColor);
+            String stateLabel = active ? "ON" : "OFF";
+            context.drawTextWithShadow(textRenderer, stateLabel,
+                    listX + listW - 39, y + 10, 0xFFFFFFFF);
         }
         if (entries.size() > 7) {
             context.drawTextWithShadow(textRenderer, "Scroll list  •  right click = settings", listX, panelY + panelH - 33, 0xFF708096);
@@ -351,7 +353,8 @@ public final class VisualMenuScreen extends Screen {
                 else return super.mouseClicked(mouseX, mouseY, button);
             }
             case "targethud" -> {
-                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.targetHud = !c.targetHud;
+                // Make the dedicated ON/OFF control easy to hit, including its label.
+                if (inside(mouseX, mouseY, x, y - 3, settingsW, 23)) c.targetHud = !c.targetHud;
                 else return super.mouseClicked(mouseX, mouseY, button);
             }
             case "potionhud" -> {
