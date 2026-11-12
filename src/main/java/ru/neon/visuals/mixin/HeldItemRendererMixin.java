@@ -14,17 +14,17 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import ru.neon.visuals.NeonVisualsClient;
 import ru.neon.visuals.config.VisualConfig;
 
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Remove vanilla attack progress before renderFirstPersonItem computes
-     * its early swing translation. The equip progress remains untouched.
+     * Zero the attack progress before vanilla computes any swing-dependent
+     * translations. Equip progress remains untouched.
      */
     @ModifyVariable(
             method = "renderFirstPersonItem",
@@ -48,15 +48,8 @@ public abstract class HeldItemRendererMixin {
         return item != null && item.getItem() instanceof SwordItem ? 0.0f : swingProgress;
     }
 
-    /**
-     * Cancel the dedicated vanilla swing transform for the hand holding the
-     * sword. This is separate from the equip/slot-switch animation.
-     */
-    @org.spongepowered.asm.mixin.injection.Inject(
-            method = "applySwingOffset",
-            at = @At("HEAD"),
-            cancellable = true
-    )
+    /** Cancel the dedicated vanilla arm swing for the hand holding a sword. */
+    @Inject(method = "applySwingOffset", at = @At("HEAD"), cancellable = true)
     private void neonvisuals$cancelVanillaSwordArmSwing(MatrixStack matrices, Arm arm,
                                                          float swingProgress, CallbackInfo ci) {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -66,19 +59,13 @@ public abstract class HeldItemRendererMixin {
         ItemStack held = mainHand
                 ? client.player.getMainHandStack()
                 : client.player.getOffHandStack();
-
-        if (held.getItem() instanceof SwordItem) {
-            ci.cancel();
-        }
+        if (held.getItem() instanceof SwordItem) ci.cancel();
     }
 
     /**
-     * This redirect executes at the renderItem call, after vanilla has applied
-     * the hand/equip transforms. Since sword swing progress and applySwingOffset
-     * are already suppressed, the current matrix has no attack rotation.
-     *
-     * Translate only X here. Do not modify the matrix at renderFirstPersonItem
-     * HEAD: later vanilla transforms would rotate that earlier displacement.
+     * Keep the static sword settings, but do not apply the attack movement
+     * here. The attack translation is applied later by ItemRendererSwordSwingMixin
+     * after Minecraft has applied the item model's first-person transformation.
      */
     @Redirect(
             method = "renderFirstPersonItem",
@@ -98,19 +85,10 @@ public abstract class HeldItemRendererMixin {
 
         matrices.push();
         try {
-            float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
-            float distance = 0.28f + config.swordSwayAngle * 0.035f;
-
-            // A pure horizontal translation at the final hand-render stage.
-            // The vanilla transforms that used to turn this into Y/Z motion
-            // have already run, and the sword's own rotation is applied later.
-            matrices.translate(-pulse * distance, 0.0, 0.0);
-
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
             matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
-
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);
         } finally {
             matrices.pop();
