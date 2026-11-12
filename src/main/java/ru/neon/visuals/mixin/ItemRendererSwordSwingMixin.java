@@ -1,5 +1,6 @@
 package ru.neon.visuals.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -49,8 +50,9 @@ public abstract class ItemRendererSwordSwingMixin {
         // first-person item-model rotations. Convert desired camera-space X
         // into the matching local vector using the inverse 3x3 basis.
         Vector3f localShift = new Vector3f(screenX, 0.0f, 0.0f);
-        Matrix4f inverse = new Matrix4f(matrices.peek().getPositionMatrix()).invert();
-        inverse.transformDirection(localShift);
+        Matrix4f modelViewAndItem = new Matrix4f(RenderSystem.getModelViewMatrix())
+                .mul(new Matrix4f(matrices.peek().getPositionMatrix()));
+        modelViewAndItem.invert().transformDirection(localShift);
 
         matrices.push();
         neonvisuals$shiftPushed = true;
