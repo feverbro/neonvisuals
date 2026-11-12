@@ -15,8 +15,9 @@ public abstract class BackgroundRendererMixin {
     private static void neonvisuals$customFog(Camera camera, BackgroundRenderer.FogType fogType,
                                                float viewDistance, boolean thickFog, float tickDelta,
                                                CallbackInfo ci) {
-        if (!VisualConfig.get().fogEnabled) return;
-        if (fogType == BackgroundRenderer.FogType.FOG_TERRAIN) {
+        // Apply the same configured fog to both terrain and sky passes. Restricting
+        // this to FOG_TERRAIN makes the effect look like a block-only overlay.
+        if (VisualConfig.get().fogEnabled) {
             FogController.applyConfiguredFog();
         }
     }
