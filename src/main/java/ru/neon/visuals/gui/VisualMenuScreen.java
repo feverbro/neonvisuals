@@ -177,7 +177,7 @@ public final class VisualMenuScreen extends Screen {
             }
             case "fog" -> {
                 y = settingToggle(context, mouseX, mouseY, "Fog enabled", c.fogEnabled, settingsX, y, 17);
-                y = settingStepper(context, mouseX, mouseY, "Start distance", c.fogStart, 4, 240, settingsX, y, 18);
+                y = settingStepper(context, mouseX, mouseY, "Start distance", c.fogStart, 0, 2, settingsX, y, 18);
                 y = settingStepper(context, mouseX, mouseY, "End distance", c.fogEnd, 8, 256, settingsX, y, 19);
                 y = settingToggle(context, mouseX, mouseY, "Sphere shape", c.fogSphere, settingsX, y, 20);
                 y = fogColorPicker(context, mouseX, mouseY, settingsX, y);
