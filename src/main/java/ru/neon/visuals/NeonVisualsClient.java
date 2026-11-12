@@ -137,7 +137,7 @@ public final class NeonVisualsClient implements ClientModInitializer {
         var box = living.getBoundingBox();
         double centerX = (box.minX + box.maxX) * 0.5;
         double centerZ = (box.minZ + box.maxZ) * 0.5;
-        double radius = Math.max(0.35, Math.max(box.getXLength(), box.getZLength()) * 0.75);
+        double radius = Math.max(0.35, Math.max(box.maxX - box.minX, box.maxZ - box.minZ) * 0.75);
         double spread = config.particleSpread / 100.0;
         double speed = config.particleSpeed / 100.0;
         int amount = Math.max(12, config.particleAmount);
