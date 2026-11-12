@@ -25,6 +25,11 @@ jobs:
         with:
           gradle-version: '8.8'
 
+      - name: Validate JSON resources
+        run: |
+          python -m json.tool src/main/resources/fabric.mod.json > /dev/null
+          python -m json.tool src/main/resources/neonvisuals.mixins.json > /dev/null
+
       - name: Build mod
         run: gradle --no-daemon clean build
 
