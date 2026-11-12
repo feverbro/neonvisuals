@@ -127,7 +127,7 @@ public final class NeonVisualsClient implements ClientModInitializer {
         if (client.player == null || client.world == null || target == null || target.isRemoved()) return;
 
         lastImpactAt = System.currentTimeMillis();
-        if (target instanceof LivingEntity living && living != player) rememberTarget(living);
+        if (target instanceof LivingEntity living && living != client.player) rememberTarget(living);
         if (config.swordAdjust && config.swordSway) lastSwordSwingAtNanos = System.nanoTime();
         if (config.hitParticles) spawnHitBurst(target);
     }
