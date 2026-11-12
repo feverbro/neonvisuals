@@ -2,7 +2,6 @@ package ru.neon.visuals.mixin;
 
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.world.ClientWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,10 +16,12 @@ public abstract class BackgroundRendererMixin {
     @Shadow private static float green;
     @Shadow private static float blue;
 
-    @Inject(method = "render", at = @At("TAIL"))
-    private static void neonvisuals$setHorizonFogColor(Camera camera, float tickDelta,
-                                                       ClientWorld world, int viewDistance,
-                                                       float skyDarkness, CallbackInfo ci) {
+    /**
+     * Set the clear/sky color before vanilla applies it. Setting these fields
+     * at the tail of render() was too late for the current frame's background.
+     */
+    @Inject(method = "applyFogColor", at = @At("HEAD"))
+    private static void neonvisuals$setFogHorizonColor(CallbackInfo ci) {
         VisualConfig config = VisualConfig.get();
         if (!config.fogEnabled) return;
 
@@ -28,7 +29,6 @@ public abstract class BackgroundRendererMixin {
         red = ((color >> 16) & 0xFF) / 255.0f;
         green = ((color >> 8) & 0xFF) / 255.0f;
         blue = (color & 0xFF) / 255.0f;
-        FogController.applyConfiguredFog();
     }
 
     @Inject(method = "applyFog", at = @At("TAIL"))
@@ -36,7 +36,7 @@ public abstract class BackgroundRendererMixin {
                                                float viewDistance, boolean thickFog, float tickDelta,
                                                CallbackInfo ci) {
         if (VisualConfig.get().fogEnabled) {
-            FogController.applyConfiguredFog();
+            FogController.applyConfiguredFog(viewDistance);
         }
     }
 }
