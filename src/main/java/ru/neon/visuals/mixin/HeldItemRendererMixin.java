@@ -37,13 +37,16 @@ public abstract class HeldItemRendererMixin {
             float swingOffset = NeonVisualsClient.getSwordSwingOffset();
             float handDirection = leftHanded ? -1.0f : 1.0f;
             // Horizontal-only movement: the sword shifts left on a hit and smoothly returns.
+            float swingDistance = 0.10f + config.swordSwayAngle * 0.025f;
             matrices.translate(
-                    config.swordX / 100.0 - swingOffset * (config.swordSwayAngle / 100.0f) * handDirection,
+                    config.swordX / 100.0 - swingOffset * swingDistance * handDirection,
                     config.swordY / 100.0,
                     config.swordZ / 100.0
             );
-            float swingRotation = swingOffset * config.swordSwayAngle * 3.0f * handDirection;
-            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation + swingRotation));
+            // Rotate around the vertical axis so the blade visibly turns sideways, not up/down.
+            float swingRotation = swingOffset * config.swordSwayAngle * 2.0f * handDirection;
+            matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(swingRotation));
+            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);
