@@ -10,6 +10,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.SwordItem;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.RotationAxis;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -20,9 +22,8 @@ import ru.neon.visuals.config.VisualConfig;
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * renderFirstPersonItem local slot 5 is its swingProgress argument:
-     * this=0, player=1, tickDelta=2, pitch=3, hand=4, swingProgress=5.
-     * The equipProgress argument is slot 7 and remains untouched.
+     * Remove the vanilla sword swing input before vanilla applies its
+     * three-axis arm/item swing transform.
      */
     @ModifyVariable(
             method = "renderFirstPersonItem",
@@ -47,10 +48,9 @@ public abstract class HeldItemRendererMixin {
     }
 
     /**
-     * One custom translation at the renderItem call for the sword.
-     * Vanilla equip positioning has already been applied. Since the attack
-     * progress above is zero, the old three-axis swing offset is also zero.
-     * This adds horizontal X only; no Y/Z translation or swing rotation.
+     * Apply the custom movement in camera space, not in the already-rotated
+     * item-local axes. The inverse current pose converts a camera-horizontal
+     * vector into the local translation required by MatrixStack.translate.
      */
     @Redirect(
             method = "renderFirstPersonItem",
@@ -73,9 +73,16 @@ public abstract class HeldItemRendererMixin {
             float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
             float distance = 0.28f + config.swordSwayAngle * 0.035f;
 
-            matrices.translate(-pulse * distance, 0.0, 0.0);
+            // Desired displacement is strictly horizontal in camera space.
+            // Convert it to the current local axes so prior arm/item rotations
+            // cannot turn it into vertical or depth movement.
+            float cameraX = -pulse * distance;
+            Vector3f localOffset = new Matrix4f(matrices.peek().getPositionMatrix())
+                    .invert()
+                    .transformDirection(new Vector3f(cameraX, 0.0f, 0.0f));
+            matrices.translate(localOffset.x, localOffset.y, localOffset.z);
 
-            // Static view-model settings are independent of the attack pulse.
+            // Static view-model settings remain independent of the swing.
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
             matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
             float scale = config.swordScale / 100.0f;
