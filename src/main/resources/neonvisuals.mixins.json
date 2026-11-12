@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "ru.neon.visuals.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "InGameHudMixin",
+    "MouseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "neonvisuals-refmap.json"
+}

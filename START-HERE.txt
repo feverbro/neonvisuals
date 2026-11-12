@@ -1,0 +1,15 @@
+NEONVISUALS — GITHUB DOWNLOAD
+
+ВАЖНО: в этом архиве файлы уже лежат в корне проекта. После распаковки ты должен сразу видеть build.gradle, src и папку .github. Не загружай ZIP как один файл и не создавай дополнительную папку neonvisuals внутри репозитория.
+
+1. Создай на GitHub репозиторий NeonVisuals (Public). При создании не добавляй README, .gitignore или License.
+2. Распакуй этот ZIP. Открой получившуюся папку проекта.
+3. На странице репозитория нажми Add file -> Upload files.
+4. Перетащи ВСЕ файлы и папки ИЗНУТРИ распакованной папки. Обязательно перетащи .github вместе с остальными файлами.
+5. Нажми Commit changes в ветку main.
+6. Перейди в Actions. Должен появиться workflow Build and publish NeonVisuals.
+7. После зелёной галочки открой Releases -> последний NeonVisuals build -> Assets и скачай neonvisuals-1.0.0.jar.
+
+ПРОВЕРКА, ЕСЛИ ACTIONS ПУСТОЙ:
+Открой вкладку Code. В самом корне репозитория должны быть видны build.gradle, settings.gradle, src и .github. Внутри .github должен находиться workflows/build.yml. Путь обязан быть .github/workflows/build.yml, не neonvisuals/.github/workflows/build.yml и не папка внутри другой папки.
+Если папка .github не загрузилась: Add file -> Create new file, в имени файла укажи .github/workflows/build.yml, а содержимое скопируй из этого файла в архиве, затем Commit changes.
