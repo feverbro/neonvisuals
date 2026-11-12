@@ -225,12 +225,14 @@ public final class NeonVisualsClient implements ClientModInitializer {
         VisualConfig config = VisualConfig.get();
         if (!config.swordAdjust || !config.swordSway || lastSwordSwingAtNanos == 0L) return 0.0f;
 
-        long durationMs = Math.max(180L, 720L - config.swordSwaySpeed * 10L);
+        long durationMs = Math.max(360L, 900L - config.swordSwaySpeed * 12L);
         double progress = (System.nanoTime() - lastSwordSwingAtNanos) / (durationMs * 1_000_000.0);
         if (progress >= 1.0 || progress < 0.0) return 0.0f;
 
-        // Raised cosine has zero velocity at both endpoints.
-        return (float) ((1.0 - Math.cos(Math.PI * 2.0 * progress)) * 0.5);
+        // Smooth attack pulse: ease into the leftward peak, then ease back to rest.
+        double phase = progress < 0.42 ? progress / 0.42 : (1.0 - progress) / 0.58;
+        phase = Math.max(0.0, Math.min(1.0, phase));
+        return (float) (phase * phase * (3.0 - 2.0 * phase));
     }
 
     public static int getCps() {
