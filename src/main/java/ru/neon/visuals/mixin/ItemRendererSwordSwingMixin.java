@@ -23,7 +23,8 @@ import ru.neon.visuals.config.VisualConfig;
  * first-person hand and item-model transformations have already been applied.
  */
 @Mixin(ItemRenderer.class)
-public abstract class ItemRendererSwordSwingMixin {\n    @Unique private boolean neonvisuals$shiftPushed;
+public abstract class ItemRendererSwordSwingMixin {
+    @Unique private boolean neonvisuals$shiftPushed;
     @Inject(method = "renderBakedItemModel", at = @At("HEAD"))
     private void neonvisuals$beginHorizontalSwordShift(
             BakedModel model,
