@@ -11,6 +11,7 @@ import net.minecraft.item.SwordItem;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,7 +23,7 @@ import ru.neon.visuals.config.VisualConfig;
  * first-person hand and item-model transformations have already been applied.
  */
 @Mixin(ItemRenderer.class)
-public abstract class ItemRendererSwordSwingMixin {
+public abstract class ItemRendererSwordSwingMixin {\n    @Unique private boolean neonvisuals$shiftPushed;
     @Inject(method = "renderBakedItemModel", at = @At("HEAD"))
     private void neonvisuals$beginHorizontalSwordShift(
             BakedModel model,
@@ -33,6 +34,7 @@ public abstract class ItemRendererSwordSwingMixin {
             VertexConsumer vertices,
             CallbackInfo ci
     ) {
+        neonvisuals$shiftPushed = false;
         VisualConfig config = VisualConfig.get();
         if (!config.swordAdjust || !config.swordSway || !(stack.getItem() instanceof SwordItem)) return;
 
@@ -50,6 +52,7 @@ public abstract class ItemRendererSwordSwingMixin {
         inverse.transformDirection(localShift);
 
         matrices.push();
+        neonvisuals$shiftPushed = true;
         matrices.translate(localShift.x, localShift.y, localShift.z);
     }
 
@@ -63,12 +66,9 @@ public abstract class ItemRendererSwordSwingMixin {
             VertexConsumer vertices,
             CallbackInfo ci
     ) {
-        VisualConfig config = VisualConfig.get();
-        if (!config.swordAdjust || !config.swordSway || !(stack.getItem() instanceof SwordItem)) return;
-
-        // Only pop when a non-zero pulse caused the matching push.
-        if (NeonVisualsClient.getSwordSwingOffset() > 0.0f) {
+        if (neonvisuals$shiftPushed) {
             matrices.pop();
+            neonvisuals$shiftPushed = false;
         }
     }
 }
