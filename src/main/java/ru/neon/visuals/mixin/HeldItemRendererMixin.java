@@ -15,6 +15,7 @@ import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.neon.visuals.NeonVisualsClient;
@@ -22,6 +23,28 @@ import ru.neon.visuals.config.VisualConfig;
 
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
+    /**
+     * In 1.21 renderFirstPersonItem adds an extra (X,Y,Z) translation from
+     * swingProgress before applySwingOffset is called. Cancel that earlier
+     * translation too, otherwise the sword still drops vertically.
+     */
+    @ModifyVariable(
+            method = "renderFirstPersonItem",
+            at = @At("HEAD"),
+            argsOnly = true,
+            ordinal = 2
+    )
+    private float neonvisuals$zeroSwordSwingProgress(float swingProgress) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (!VisualConfig.get().swordAdjust || client.player == null) return swingProgress;
+
+        if (client.player.getMainHandStack().getItem() instanceof SwordItem
+                || client.player.getOffHandStack().getItem() instanceof SwordItem) {
+            return 0.0f;
+        }
+        return swingProgress;
+    }
+
     /**
      * Cancel the vanilla arm swing transform only for the arm holding a sword.
      * Equip lowering/raising is not touched.
