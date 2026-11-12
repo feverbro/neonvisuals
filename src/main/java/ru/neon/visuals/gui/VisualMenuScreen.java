@@ -142,7 +142,29 @@ public final class VisualMenuScreen extends Screen {
                 y = settingToggle(context, mouseX, mouseY, "Center dot", c.crosshairDot, settingsX, y, 5);
             }
             case "pulse" -> y = settingStepper(context, mouseX, mouseY, "Pulse strength", c.pulseStrength, 0, 200, settingsX, y, 6);
-            case "particles" -> y = settingStepper(context, mouseX, mouseY, "Particle amount", c.particleAmount, 4, 40, settingsX, y, 7);
+            case "particles" -> {
+                y = settingStepper(context, mouseX, mouseY, "Particle amount", c.particleAmount, 4, 48, settingsX, y, 7);
+                y = settingStepper(context, mouseX, mouseY, "Spread", c.particleSpread, 5, 100, settingsX, y, 10);
+                y = settingStepper(context, mouseX, mouseY, "Speed", c.particleSpeed, 5, 150, settingsX, y, 11);
+            }
+            case "sword" -> {
+                y = settingStepper(context, mouseX, mouseY, "X offset", c.swordX, -50, 50, settingsX, y, 12);
+                y = settingStepper(context, mouseX, mouseY, "Y offset", c.swordY, -50, 50, settingsX, y, 13);
+                y = settingStepper(context, mouseX, mouseY, "Z offset", c.swordZ, -50, 50, settingsX, y, 14);
+                y = settingStepper(context, mouseX, mouseY, "Scale %", c.swordScale, 50, 150, settingsX, y, 15);
+                y = settingStepper(context, mouseX, mouseY, "Rotation", c.swordRotation, -180, 180, settingsX, y, 16);
+            }
+            case "fog" -> {
+                y = settingToggle(context, mouseX, mouseY, "Fog enabled", c.fogEnabled, settingsX, y, 17);
+                y = settingStepper(context, mouseX, mouseY, "Start distance", c.fogStart, 4, 240, settingsX, y, 18);
+                y = settingStepper(context, mouseX, mouseY, "End distance", c.fogEnd, 8, 256, settingsX, y, 19);
+                y = settingToggle(context, mouseX, mouseY, "Sphere shape", c.fogSphere, settingsX, y, 20);
+                y = fogColorPicker(context, mouseX, mouseY, settingsX, y);
+            }
+            case "glint" -> {
+                y = settingToggle(context, mouseX, mouseY, "White enchant", c.whiteGlint, settingsX, y, 21);
+                y = settingStepper(context, mouseX, mouseY, "Whiteness", c.glintWhiteness, 0, 100, settingsX, y, 22);
+            }
             case "style" -> {
                 y = settingToggle(context, mouseX, mouseY, "Compact HUD", c.compactHud, settingsX, y, 8);
                 y = settingStepper(context, mouseX, mouseY, "Panel opacity", c.panelOpacity, 100, 255, settingsX, y, 9);
@@ -193,6 +215,20 @@ public final class VisualMenuScreen extends Screen {
         return y + 51;
     }
 
+    private int fogColorPicker(DrawContext context, int mouseX, int mouseY, int x, int y) {
+        context.drawTextWithShadow(textRenderer, "Fog color", x, y + 3, 0xFFE0E7F0);
+        int[] colors = {0xFFB9D9FF, 0xFFFFFFFF, 0xFFB8C7D9, 0xFFB8E8E0, 0xFFD8C7FF, 0xFFFFD6B8, 0xFF9AA8BB};
+        for (int i = 0; i < colors.length; i++) {
+            int bx = x + i * 22;
+            context.fill(bx, y + 21, bx + 17, y + 38, colors[i]);
+            if (VisualConfig.get().fogColor == colors[i]) {
+                context.fill(bx - 1, y + 20, bx + 18, y + 21, 0xFFFFFFFF);
+                context.fill(bx - 1, y + 38, bx + 18, y + 39, 0xFFFFFFFF);
+            }
+        }
+        return y + 51;
+    }
+
     private void drawButton(DrawContext context, int x, int y, int w, int h, String label, boolean hover) {
         context.fill(x, y, x + w, y + h, hover ? 0xFF30445D : 0xFF1A2636);
         int textW = textRenderer.getWidth(label);
@@ -214,7 +250,10 @@ public final class VisualMenuScreen extends Screen {
             case RENDER -> {
                 entries.add(new Entry("crosshair", "Custom Crosshair", "Adjustable center reticle", () -> c.customCrosshair));
                 entries.add(new Entry("hitmarker", "Hit Marker", "Short impact feedback", () -> c.hitMarker));
-                entries.add(new Entry("particles", "Hit Particles", "Local particle burst on click", () -> c.hitParticles));
+                entries.add(new Entry("particles", "Hit Particles", "Particles on melee attack", () -> c.hitParticles));
+                entries.add(new Entry("sword", "Sword Adjust", "First-person sword transform", () -> c.swordAdjust));
+                entries.add(new Entry("fog", "Custom Fog", "Distance, shape and color", () -> c.fogEnabled));
+                entries.add(new Entry("glint", "White Enchant", "Whiter enchantment effect", () -> c.whiteGlint));
                 entries.add(new Entry("jump", "Jump Circle", "Particle ring when jumping", () -> c.jumpCircle));
                 entries.add(new Entry("trail", "Player Trail", "Light trail while airborne", () -> c.playerTrail));
                 entries.add(new Entry("pulse", "Damage Pulse", "Subtle screen tint on damage", () -> c.damagePulse));
@@ -284,8 +323,32 @@ public final class VisualMenuScreen extends Screen {
             }
             case "particles" -> {
                 direction = stepperHit(mouseX, mouseY, x, y);
-                if (direction == 0) return super.mouseClicked(mouseX, mouseY, button);
-                c.particleAmount = clamp(c.particleAmount + direction * 2, 4, 40);
+                if (direction != 0) c.particleAmount = clamp(c.particleAmount + direction * 2, 4, 48);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.particleSpread = clamp(c.particleSpread + direction * 5, 5, 100);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 58)) != 0) c.particleSpeed = clamp(c.particleSpeed + direction * 5, 5, 150);
+                else return super.mouseClicked(mouseX, mouseY, button);
+            }
+            case "sword" -> {
+                direction = stepperHit(mouseX, mouseY, x, y);
+                if (direction != 0) c.swordX = clamp(c.swordX + direction, -50, 50);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.swordY = clamp(c.swordY + direction, -50, 50);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 58)) != 0) c.swordZ = clamp(c.swordZ + direction, -50, 50);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 87)) != 0) c.swordScale = clamp(c.swordScale + direction * 5, 50, 150);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 116)) != 0) c.swordRotation = clamp(c.swordRotation + direction * 5, -180, 180);
+                else return super.mouseClicked(mouseX, mouseY, button);
+            }
+            case "fog" -> {
+                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.fogEnabled = !c.fogEnabled;
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.fogStart = clamp(c.fogStart + direction * 2, 4, Math.max(4, c.fogEnd - 4));
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 58)) != 0) c.fogEnd = clamp(c.fogEnd + direction * 4, c.fogStart + 4, 256);
+                else if (inside(mouseX, mouseY, x + settingsW - 48, y + 86, 44, 18)) c.fogSphere = !c.fogSphere;
+                else if (inside(mouseX, mouseY, x, y + 137, settingsW, 18)) chooseFogColor(mouseX, x);
+                else return super.mouseClicked(mouseX, mouseY, button);
+            }
+            case "glint" -> {
+                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.whiteGlint = !c.whiteGlint;
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.glintWhiteness = clamp(c.glintWhiteness + direction * 5, 0, 100);
+                else return super.mouseClicked(mouseX, mouseY, button);
             }
             case "style" -> {
                 if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.compactHud = !c.compactHud;
@@ -316,12 +379,21 @@ public final class VisualMenuScreen extends Screen {
         if (index >= 0 && index < colors.length) VisualConfig.get().accentColor = colors[index];
     }
 
+    private void chooseFogColor(double mouseX, int x) {
+        int[] colors = {0xFFB9D9FF, 0xFFFFFFFF, 0xFFB8C7D9, 0xFFB8E8E0, 0xFFD8C7FF, 0xFFFFD6B8, 0xFF9AA8BB};
+        int index = (int) ((mouseX - x) / 22.0);
+        if (index >= 0 && index < colors.length) VisualConfig.get().fogColor = colors[index];
+    }
+
     private void setModule(String key, boolean value) {
         VisualConfig c = VisualConfig.get();
         switch (key) {
             case "crosshair" -> c.customCrosshair = value;
             case "hitmarker" -> c.hitMarker = value;
             case "particles" -> c.hitParticles = value;
+            case "sword" -> c.swordAdjust = value;
+            case "fog" -> c.fogEnabled = value;
+            case "glint" -> c.whiteGlint = value;
             case "jump" -> c.jumpCircle = value;
             case "trail" -> c.playerTrail = value;
             case "pulse" -> c.damagePulse = value;

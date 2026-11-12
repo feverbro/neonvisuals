@@ -42,6 +42,28 @@ public final class VisualConfig {
     // Effects and theme
     public int pulseStrength = 105;
     public int particleAmount = 14;
+    public int particleSpread = 55;
+    public int particleSpeed = 65;
+
+    // First-person sword transform. Offsets are hundredths of a block.
+    public boolean swordAdjust = true;
+    public int swordX = 0;
+    public int swordY = 0;
+    public int swordZ = 0;
+    public int swordScale = 100;
+    public int swordRotation = 0;
+
+    // Client-side terrain fog.
+    public boolean fogEnabled = false;
+    public int fogStart = 12;
+    public int fogEnd = 72;
+    public int fogColor = 0xFFB9D9FF;
+    public boolean fogSphere = false;
+
+    // Enchantment glint tint.
+    public boolean whiteGlint = false;
+    public int glintWhiteness = 75;
+
     public int accentColor = 0xFF63D8FF;
     public int panelOpacity = 218;
     public boolean compactHud = false;
@@ -82,7 +104,21 @@ public final class VisualConfig {
         crosshairWidth = clamp(crosshairWidth, 1, 6);
         crosshairOpacity = clamp(crosshairOpacity, 30, 255);
         pulseStrength = clamp(pulseStrength, 0, 200);
-        particleAmount = clamp(particleAmount, 4, 40);
+        particleAmount = clamp(particleAmount, 4, 48);
+        particleSpread = clamp(particleSpread, 5, 100);
+        particleSpeed = clamp(particleSpeed, 5, 150);
+
+        swordX = clamp(swordX, -50, 50);
+        swordY = clamp(swordY, -50, 50);
+        swordZ = clamp(swordZ, -50, 50);
+        swordScale = clamp(swordScale, 50, 150);
+        swordRotation = clamp(swordRotation, -180, 180);
+
+        fogStart = clamp(fogStart, 4, 240);
+        fogEnd = clamp(fogEnd, fogStart + 4, 256);
+        fogColor |= 0xFF000000;
+        glintWhiteness = clamp(glintWhiteness, 0, 100);
+
         panelOpacity = clamp(panelOpacity, 100, 255);
         accentColor |= 0xFF000000;
     }

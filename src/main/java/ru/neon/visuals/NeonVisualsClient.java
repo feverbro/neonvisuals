@@ -7,9 +7,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.hit.EntityHitResult;
 import org.lwjgl.glfw.GLFW;
 import ru.neon.visuals.config.VisualConfig;
 import ru.neon.visuals.gui.VisualMenuScreen;
@@ -101,22 +101,33 @@ public final class NeonVisualsClient implements ClientModInitializer {
         long now = System.currentTimeMillis();
         LEFT_CLICKS.addLast(now);
 
-        VisualConfig config = VisualConfig.get();
-        if ((!config.hitParticles && !config.hitMarker) || client.player == null || client.world == null) return;
-        if (!(client.crosshairTarget instanceof EntityHitResult entityHit)) return;
-        if (!(entityHit.getEntity() instanceof LivingEntity target)) return;
+    }
 
-        lastImpactAt = now;
-        if (!config.hitParticles) return;
+    /** Called after the client attack method has processed a melee attack attempt. */
+    public static void onEntityAttackAttempt(Entity target) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        VisualConfig config = VisualConfig.get();
+        if (client.player == null || client.world == null || target == null || target.isRemoved()) return;
+
+        if (config.hitMarker || config.hitParticles) {
+            lastImpactAt = System.currentTimeMillis();
+        }
+        if (!config.hitParticles || !(target instanceof LivingEntity livingTarget)) return;
+
+        var bounds = livingTarget.getBoundingBox();
+        double spread = config.particleSpread / 100.0;
+        double speed = config.particleSpeed / 100.0;
         int amount = config.particleAmount;
         for (int i = 0; i < amount; i++) {
-            double vx = (RANDOM.nextDouble() - 0.5) * 0.24;
-            double vy = RANDOM.nextDouble() * 0.22;
-            double vz = (RANDOM.nextDouble() - 0.5) * 0.24;
-            double px = target.getX() + (RANDOM.nextDouble() - 0.5) * target.getWidth();
-            double py = target.getY() + target.getHeight() * (0.35 + RANDOM.nextDouble() * 0.45);
-            double pz = target.getZ() + (RANDOM.nextDouble() - 0.5) * target.getWidth();
-            client.world.addParticle(ParticleTypes.CRIT, px, py, pz, vx, vy, vz);
+            double px = bounds.minX + RANDOM.nextDouble() * (bounds.maxX - bounds.minX);
+            double py = bounds.minY + livingTarget.getHeight() * (0.25 + RANDOM.nextDouble() * 0.6);
+            double pz = bounds.minZ + RANDOM.nextDouble() * (bounds.maxZ - bounds.minZ);
+
+            double vx = (RANDOM.nextDouble() - 0.5) * 0.42 * spread * speed;
+            double vy = (0.08 + RANDOM.nextDouble() * 0.28) * speed;
+            double vz = (RANDOM.nextDouble() - 0.5) * 0.42 * spread * speed;
+            var particle = (i % 3 == 0) ? ParticleTypes.ENCHANTED_HIT : ParticleTypes.CRIT;
+            client.world.addParticle(particle, px, py, pz, vx, vy, vz);
         }
     }
 

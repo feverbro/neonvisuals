@@ -4,7 +4,11 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "InGameHudMixin",
-    "MouseMixin"
+    "MouseMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "HeldItemRendererMixin",
+    "BackgroundRendererMixin",
+    "ItemRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
