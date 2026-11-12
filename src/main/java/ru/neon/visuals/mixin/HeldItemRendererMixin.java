@@ -10,8 +10,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.SwordItem;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.RotationAxis;
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -73,14 +71,9 @@ public abstract class HeldItemRendererMixin {
             float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
             float distance = 0.28f + config.swordSwayAngle * 0.035f;
 
-            // Desired displacement is strictly horizontal in camera space.
-            // Convert it to the current local axes so prior arm/item rotations
-            // cannot turn it into vertical or depth movement.
+            // Move only along the X coordinate; Y and Z stay unchanged.
             float cameraX = -pulse * distance;
-            Vector3f localOffset = new Matrix4f(matrices.peek().getPositionMatrix())
-                    .invert()
-                    .transformDirection(new Vector3f(cameraX, 0.0f, 0.0f));
-            matrices.translate(localOffset.x, localOffset.y, localOffset.z);
+            matrices.translate(cameraX, 0.0, 0.0);
 
             // Static view-model settings remain independent of the swing.
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
