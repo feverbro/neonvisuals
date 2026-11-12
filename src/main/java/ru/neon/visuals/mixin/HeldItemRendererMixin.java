@@ -1,6 +1,7 @@
 package ru.neon.visuals.mixin;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
@@ -8,6 +9,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.SwordItem;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,11 +21,10 @@ import ru.neon.visuals.config.VisualConfig;
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Remove vanilla attack progress before renderFirstPersonItem applies any
-     * swing-dependent transforms. Equip progress remains untouched.
-     *
-     * In the 1.21 method descriptor the float arguments are tickDelta, pitch,
-     * swingProgress and equipProgress, so swingProgress has float ordinal 2.
+     * Zero only the swing progress belonging to the sword currently being
+     * rendered. The remaining method arguments are captured so an off-hand
+     * item is not affected just because the main hand holds a sword.
+     * Equip progress is deliberately left unchanged.
      */
     @ModifyVariable(
             method = "renderFirstPersonItem",
@@ -31,17 +32,21 @@ public abstract class HeldItemRendererMixin {
             argsOnly = true,
             ordinal = 2
     )
-    private float neonvisuals$removeVanillaSwordSwing(float swingProgress) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (!VisualConfig.get().swordAdjust || client.player == null) return swingProgress;
-
-        // The method renders one hand at a time; check both held stacks because
-        // the method's hand argument is not needed for the main-hand sword case.
-        if (client.player.getMainHandStack().getItem() instanceof SwordItem
-                || client.player.getOffHandStack().getItem() instanceof SwordItem) {
-            return 0.0f;
-        }
-        return swingProgress;
+    private float neonvisuals$removeVanillaSwordSwing(
+            float swingProgress,
+            AbstractClientPlayerEntity player,
+            float tickDelta,
+            float pitch,
+            Hand hand,
+            float methodSwingProgress,
+            ItemStack item,
+            float equipProgress,
+            MatrixStack matrices,
+            VertexConsumerProvider vertexConsumers,
+            int light
+    ) {
+        if (!VisualConfig.get().swordAdjust || item == null) return swingProgress;
+        return item.getItem() instanceof SwordItem ? 0.0f : swingProgress;
     }
 
     @Redirect(
