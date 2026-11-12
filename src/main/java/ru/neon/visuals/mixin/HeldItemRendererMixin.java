@@ -1,7 +1,7 @@
 package ru.neon.visuals.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
@@ -10,8 +10,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.SwordItem;
 import net.minecraft.util.Arm;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.RotationAxis;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,57 +24,9 @@ import ru.neon.visuals.config.VisualConfig;
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Create an outer matrix scope around this hand render. The custom swing
-     * translation is applied before any of Minecraft's hand/item rotations,
-     * so it stays on the camera-horizontal axis rather than following the
-     * rotated sword model's local axes.
-     */
-    @Inject(method = "renderFirstPersonItem", at = @At("HEAD"))
-    private void neonvisuals$beginSwordRender(
-            AbstractClientPlayerEntity player,
-            float tickDelta,
-            float pitch,
-            Hand hand,
-            float swingProgress,
-            ItemStack item,
-            float equipProgress,
-            MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
-            int light,
-            CallbackInfo ci
-    ) {
-        matrices.push();
-        if (VisualConfig.get().swordAdjust && item != null && item.getItem() instanceof SwordItem) {
-            float pulse = VisualConfig.get().swordSway
-                    ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
-            float distance = 0.28f + VisualConfig.get().swordSwayAngle * 0.035f;
-            float direction = hand == Hand.MAIN_HAND ? -1.0f : 1.0f;
-            // MatrixStack is still at the camera/view transform here: this X
-            // shift is established before vanilla hand pitch/roll transforms.
-            matrices.translate(direction * pulse * distance, 0.0, 0.0);
-        }
-    }
-
-    @Inject(method = "renderFirstPersonItem", at = @At("RETURN"))
-    private void neonvisuals$endSwordRender(
-            AbstractClientPlayerEntity player,
-            float tickDelta,
-            float pitch,
-            Hand hand,
-            float swingProgress,
-            ItemStack item,
-            float equipProgress,
-            MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
-            int light,
-            CallbackInfo ci
-    ) {
-        matrices.pop();
-    }
-
-    /**
-     * Suppress the vanilla swing progress for the exact sword stack being
-     * rendered. Keep equip progress, which is the separate slot-switch motion.
+     * Zero the attack progress at method entry so vanilla does not apply its
+     * earlier swing-dependent position changes to a sword. Slot equip motion
+     * remains independent and is preserved.
      */
     @ModifyVariable(
             method = "renderFirstPersonItem",
@@ -82,12 +34,12 @@ public abstract class HeldItemRendererMixin {
             argsOnly = true,
             ordinal = 2
     )
-    private float neonvisuals$removeVanillaSwordSwing(
+    private float neonvisuals$removeVanillaSwordSwingProgress(
             float swingProgress,
-            AbstractClientPlayerEntity player,
+            net.minecraft.client.network.AbstractClientPlayerEntity player,
             float tickDelta,
             float pitch,
-            Hand hand,
+            net.minecraft.util.Hand hand,
             float originalSwingProgress,
             ItemStack item,
             float equipProgress,
@@ -99,12 +51,12 @@ public abstract class HeldItemRendererMixin {
     }
 
     /**
-     * The remaining vanilla swing helper is also disabled for the sword hand.
-     * This does not affect equip lowering/raising.
+     * Also cancel the dedicated vanilla arm-swing transform for the hand that
+     * actually holds a sword. This is separate from the equip/slot animation.
      */
     @Inject(method = "applySwingOffset", at = @At("HEAD"), cancellable = true)
-    private void neonvisuals$cancelVanillaSwordSwing(MatrixStack matrices, Arm arm,
-                                                     float swingProgress, CallbackInfo ci) {
+    private void neonvisuals$cancelVanillaSwordArmSwing(MatrixStack matrices, Arm arm,
+                                                         float swingProgress, CallbackInfo ci) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (!VisualConfig.get().swordAdjust || client.player == null) return;
 
@@ -136,12 +88,37 @@ public abstract class HeldItemRendererMixin {
 
         matrices.push();
         try {
-            // Static user adjustments only. The attack animation is applied
-            // once, at renderFirstPersonItem HEAD, in camera-horizontal space.
+            // Static position/rotation/scale options are independent from the
+            // attack motion and are applied first.
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
             matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
+
+            float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
+            float distance = 0.28f + config.swordSwayAngle * 0.035f;
+            float screenLeft = -pulse * distance;
+
+            /*
+             * Convert a pure view-space X translation into the coordinate
+             * space of this item matrix:
+             *
+             *   V * M' = T(view-X) * V * M
+             *   M' = inverse(V) * T(view-X) * V * M
+             *
+             * This is invariant under camera pitch, yaw, hand pose, and item
+             * rotations. It avoids using the sword's rotated local X/Y axes.
+             */
+            Matrix4f view = new Matrix4f(RenderSystem.getModelViewMatrix());
+            Matrix4f inverseView = new Matrix4f(view).invert();
+            Matrix4f position = matrices.peek().getPositionMatrix();
+            Matrix4f viewTranslation = new Matrix4f().translation(screenLeft, 0.0f, 0.0f);
+            Matrix4f adjusted = new Matrix4f(inverseView)
+                    .mul(viewTranslation)
+                    .mul(view)
+                    .mul(new Matrix4f(position));
+            position.set(adjusted);
+
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);
         } finally {
             matrices.pop();
