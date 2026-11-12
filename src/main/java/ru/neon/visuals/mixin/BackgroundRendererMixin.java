@@ -1,5 +1,6 @@
 package ru.neon.visuals.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.Camera;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,10 +18,10 @@ public abstract class BackgroundRendererMixin {
     @Shadow private static float blue;
 
     /**
-     * Set the clear/sky color before vanilla applies it. Setting these fields
-     * at the tail of render() was too late for the current frame's background.
+     * applyFogColor computes biome/sky colors internally, so override them
+     * after its calculations rather than before them.
      */
-    @Inject(method = "applyFogColor", at = @At("HEAD"))
+    @Inject(method = "applyFogColor", at = @At("TAIL"))
     private static void neonvisuals$setFogHorizonColor(CallbackInfo ci) {
         VisualConfig config = VisualConfig.get();
         if (!config.fogEnabled) return;
@@ -29,13 +30,14 @@ public abstract class BackgroundRendererMixin {
         red = ((color >> 16) & 0xFF) / 255.0f;
         green = ((color >> 8) & 0xFF) / 255.0f;
         blue = (color & 0xFF) / 255.0f;
+        RenderSystem.clearColor(red, green, blue, 0.0f);
     }
 
     @Inject(method = "applyFog", at = @At("TAIL"))
     private static void neonvisuals$customFog(Camera camera, BackgroundRenderer.FogType fogType,
                                                float viewDistance, boolean thickFog, float tickDelta,
                                                CallbackInfo ci) {
-        if (VisualConfig.get().fogEnabled) {
+        if (VisualConfig.get().fogEnabled && fogType == BackgroundRenderer.FogType.FOG_TERRAIN) {
             FogController.applyConfiguredFog(viewDistance);
         }
     }
