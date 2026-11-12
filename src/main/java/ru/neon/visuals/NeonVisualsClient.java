@@ -132,8 +132,8 @@ public final class NeonVisualsClient implements ClientModInitializer {
 
         lastImpactAt = System.currentTimeMillis();
         if (target instanceof LivingEntity living && living != client.player) rememberTarget(living);
-        // Mouse input normally starts this first; keep the interaction hook as a fallback.
-        if (System.nanoTime() - lastSwordSwingAtNanos > 120_000_000L) triggerSwordSwing();
+        // The mouse hook is the single source for the visual swing trigger.
+        // Do not restart the animation a second time from the attack callback.
         if (config.hitParticles) spawnHitBurst(target);
     }
 
@@ -225,14 +225,13 @@ public final class NeonVisualsClient implements ClientModInitializer {
         VisualConfig config = VisualConfig.get();
         if (!config.swordAdjust || !config.swordSway || lastSwordSwingAtNanos == 0L) return 0.0f;
 
-        long durationMs = Math.max(360L, 900L - config.swordSwaySpeed * 12L);
+        long durationMs = Math.max(320L, 640L - config.swordSwaySpeed * 8L);
         double progress = (System.nanoTime() - lastSwordSwingAtNanos) / (durationMs * 1_000_000.0);
         if (progress >= 1.0 || progress < 0.0) return 0.0f;
 
-        // Smooth attack pulse: ease into the leftward peak, then ease back to rest.
-        double phase = progress < 0.42 ? progress / 0.42 : (1.0 - progress) / 0.58;
-        phase = Math.max(0.0, Math.min(1.0, phase));
-        return (float) (phase * phase * (3.0 - 2.0 * phase));
+        // Symmetric smooth pulse: 0 at rest, 1 at the leftward peak, then 0.
+        double pulse = Math.sin(Math.PI * progress);
+        return (float) (pulse * pulse);
     }
 
     public static int getCps() {
