@@ -10,7 +10,6 @@
     "BackgroundRendererMixin",
     "EntityRenderDispatcherMixin",
     "ItemRendererMixin",
-    "ItemRendererSwordSwingMixin"
   ],
   "injectors": {
     "defaultRequire": 1
