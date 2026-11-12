@@ -38,11 +38,11 @@ public abstract class HeldItemRendererMixin {
             float handDirection = leftHanded ? -1.0f : 1.0f;
             // Horizontal-only movement: the sword shifts left on a hit and smoothly returns.
             matrices.translate(
-                    config.swordX / 100.0 - swingOffset * handDirection,
+                    config.swordX / 100.0 - swingOffset * (config.swordSwayAngle / 100.0f) * handDirection,
                     config.swordY / 100.0,
                     config.swordZ / 100.0
             );
-            float swingRotation = swingOffset * 80.0f * handDirection;
+            float swingRotation = swingOffset * config.swordSwayAngle * 3.0f * handDirection;
             matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation + swingRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);

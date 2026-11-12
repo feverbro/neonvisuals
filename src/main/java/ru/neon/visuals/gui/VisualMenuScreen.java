@@ -149,6 +149,14 @@ public final class VisualMenuScreen extends Screen {
                 y = settingStepper(context, mouseX, mouseY, "Opacity", c.crosshairOpacity, 30, 255, settingsX, y, 4);
                 y = settingToggle(context, mouseX, mouseY, "Center dot", c.crosshairDot, settingsX, y, 5);
             }
+            case "targethud" -> {
+                y = settingToggle(context, mouseX, mouseY, "Enable Target HUD", c.targetHud, settingsX, y, 26);
+                context.drawTextWithShadow(textRenderer, "Shows the last target for 30 seconds", settingsX, y + 1, 0xFF8190A5);
+            }
+            case "potionhud" -> {
+                y = settingToggle(context, mouseX, mouseY, "Enable Potion HUD", c.potionHud, settingsX, y, 27);
+                context.drawTextWithShadow(textRenderer, "Displays active effects and timers", settingsX, y + 1, 0xFF8190A5);
+            }
             case "pulse" -> y = settingStepper(context, mouseX, mouseY, "Pulse strength", c.pulseStrength, 0, 200, settingsX, y, 6);
             case "particles" -> {
                 y = settingStepper(context, mouseX, mouseY, "Particle amount", c.particleAmount, 4, 48, settingsX, y, 7);
@@ -271,6 +279,8 @@ public final class VisualMenuScreen extends Screen {
                 entries.add(new Entry("pulse", "Damage Pulse", "Subtle screen tint on damage", () -> c.damagePulse));
             }
             case HUD -> {
+                entries.add(new Entry("targethud", "Target HUD", "Target name and health bar", () -> c.targetHud));
+                entries.add(new Entry("potionhud", "Potion HUD", "Active effects and timers", () -> c.potionHud));
                 entries.add(new Entry("fps", "FPS Counter", "Current client frame rate", () -> c.fpsHud));
                 entries.add(new Entry("coords", "Coordinates", "XYZ position display", () -> c.coordinatesHud));
                 entries.add(new Entry("ping", "Ping", "Network latency", () -> c.pingHud));
@@ -278,8 +288,6 @@ public final class VisualMenuScreen extends Screen {
                 entries.add(new Entry("keys", "Keystrokes", "WASD and jump key display", () -> c.keystrokesHud));
                 entries.add(new Entry("totems", "Totem Counter", "Totems in inventory", () -> c.totemHud));
                 entries.add(new Entry("armor", "Armor HUD", "Durability of worn armor", () -> c.armorHud));
-                entries.add(new Entry("targethud", "Target HUD", "Target name and health bar", () -> c.targetHud));
-                entries.add(new Entry("potionhud", "Potion HUD", "Active effects and timers", () -> c.potionHud));
             }
             case STYLE -> {
                 entries.add(new Entry("style", "HUD Theme", "Compact layout and colors", () -> true));
@@ -340,6 +348,14 @@ public final class VisualMenuScreen extends Screen {
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 58)) != 0) c.crosshairWidth = clamp(c.crosshairWidth + direction, 1, 6);
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 87)) != 0) c.crosshairOpacity = clamp(c.crosshairOpacity + direction * 10, 30, 255);
                 else if (inside(mouseX, mouseY, x + settingsW - 48, y + 115, 44, 18)) c.crosshairDot = !c.crosshairDot;
+                else return super.mouseClicked(mouseX, mouseY, button);
+            }
+            case "targethud" -> {
+                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.targetHud = !c.targetHud;
+                else return super.mouseClicked(mouseX, mouseY, button);
+            }
+            case "potionhud" -> {
+                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.potionHud = !c.potionHud;
                 else return super.mouseClicked(mouseX, mouseY, button);
             }
             case "pulse" -> {

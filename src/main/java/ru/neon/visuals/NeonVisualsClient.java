@@ -10,6 +10,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.item.SwordItem;
 import net.minecraft.util.hit.EntityHitResult;
 import org.lwjgl.glfw.GLFW;
 import ru.neon.visuals.config.VisualConfig;
@@ -112,6 +113,9 @@ public final class NeonVisualsClient implements ClientModInitializer {
         long now = System.currentTimeMillis();
         LEFT_CLICKS.addLast(now);
 
+        // Trigger from the actual mouse event; this also works when the player swings at air.
+        triggerSwordSwing();
+
         // Fallback path: the mouse event can happen before the interaction manager callback.
         VisualConfig config = VisualConfig.get();
         if (config.hitParticles && client.player != null && client.world != null
@@ -128,7 +132,8 @@ public final class NeonVisualsClient implements ClientModInitializer {
 
         lastImpactAt = System.currentTimeMillis();
         if (target instanceof LivingEntity living && living != client.player) rememberTarget(living);
-        if (config.swordAdjust && config.swordSway) lastSwordSwingAtNanos = System.nanoTime();
+        // Mouse input normally starts this first; keep the interaction hook as a fallback.
+        if (System.nanoTime() - lastSwordSwingAtNanos > 120_000_000L) triggerSwordSwing();
         if (config.hitParticles) spawnHitBurst(target);
     }
 
@@ -207,7 +212,15 @@ public final class NeonVisualsClient implements ClientModInitializer {
         return (int) Math.max(0L, (trackedTargetExpiresAt - System.currentTimeMillis() + 999L) / 1000L);
     }
 
-    /** Horizontal-only attack motion: smooth move left, then return. No idle bobbing. */
+    private static void triggerSwordSwing() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        VisualConfig config = VisualConfig.get();
+        if (!config.swordAdjust || !config.swordSway || client.player == null) return;
+        if (!(client.player.getMainHandStack().getItem() instanceof SwordItem)) return;
+        lastSwordSwingAtNanos = System.nanoTime();
+    }
+
+    /** Normalized smooth pulse: 0 -> 1 -> 0. Triggered by each sword click only. */
     public static float getSwordSwingOffset() {
         VisualConfig config = VisualConfig.get();
         if (!config.swordAdjust || !config.swordSway || lastSwordSwingAtNanos == 0L) return 0.0f;
@@ -215,7 +228,9 @@ public final class NeonVisualsClient implements ClientModInitializer {
         long durationMs = Math.max(180L, 720L - config.swordSwaySpeed * 10L);
         double progress = (System.nanoTime() - lastSwordSwingAtNanos) / (durationMs * 1_000_000.0);
         if (progress >= 1.0 || progress < 0.0) return 0.0f;
-        return (float) Math.sin(Math.PI * progress) * (config.swordSwayAngle / 100.0f);
+
+        // Raised cosine has zero velocity at both endpoints.
+        return (float) ((1.0 - Math.cos(Math.PI * 2.0 * progress)) * 0.5);
     }
 
     public static int getCps() {

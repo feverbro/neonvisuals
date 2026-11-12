@@ -8,6 +8,7 @@
     "ClientPlayerInteractionManagerMixin",
     "HeldItemRendererMixin",
     "BackgroundRendererMixin",
+    "EntityRenderDispatcherMixin",
     "ItemRendererMixin"
   ],
   "injectors": {
