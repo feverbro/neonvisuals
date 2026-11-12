@@ -15,40 +15,62 @@ import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import ru.neon.visuals.NeonVisualsClient;
 import ru.neon.visuals.config.VisualConfig;
 
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Zero the attack progress before vanilla computes any swing-dependent
-     * translations. Equip progress remains untouched.
+     * Replace the exact vanilla three-axis swing translation in
+     * renderFirstPersonItem. For an idle sword, Minecraft computes X/Y/Z from
+     * swingProgress and sends them through this MatrixStack.translate call.
+     * Replace that vector with a pure horizontal X displacement instead.
      */
-    @ModifyVariable(
+    @Redirect(
             method = "renderFirstPersonItem",
-            at = @At("HEAD"),
-            argsOnly = true,
-            ordinal = 2
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/util/math/MatrixStack;translate(DDD)V"
+            )
     )
-    private float neonvisuals$removeVanillaSwordSwingProgress(
-            float swingProgress,
+    private void neonvisuals$replaceSwordSwingTranslation(
+            MatrixStack matrices,
+            double vanillaX,
+            double vanillaY,
+            double vanillaZ,
             AbstractClientPlayerEntity player,
             float tickDelta,
             float pitch,
             Hand hand,
-            float originalSwingProgress,
+            float swingProgress,
             ItemStack item,
             float equipProgress,
-            MatrixStack matrices,
+            MatrixStack renderMatrices,
             VertexConsumerProvider vertexConsumers,
             int light
     ) {
-        return item != null && item.getItem() instanceof SwordItem ? 0.0f : swingProgress;
+        VisualConfig config = VisualConfig.get();
+
+        // Preserve all use-action transforms. The idle sword branch uses the
+        // vanilla three-axis translation solely for the attack swing.
+        if (config.swordAdjust && item != null && item.getItem() instanceof SwordItem
+                && !player.isUsingItem()) {
+            float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
+            float distance = 0.28f + config.swordSwayAngle * 0.035f;
+            double screenHorizontal = -pulse * distance;
+            if (hand == Hand.OFF_HAND) screenHorizontal = -screenHorizontal;
+
+            // Replace vanilla (X,Y,Z) with horizontal-only movement.
+            matrices.translate(screenHorizontal, 0.0, 0.0);
+            return;
+        }
+
+        matrices.translate(vanillaX, vanillaY, vanillaZ);
     }
 
-    /** Cancel the dedicated vanilla arm swing for the hand holding a sword. */
+    /** Cancel vanilla arm swing rotation for the sword hand; keep equip motion. */
     @Inject(method = "applySwingOffset", at = @At("HEAD"), cancellable = true)
     private void neonvisuals$cancelVanillaSwordArmSwing(MatrixStack matrices, Arm arm,
                                                          float swingProgress, CallbackInfo ci) {
@@ -62,11 +84,7 @@ public abstract class HeldItemRendererMixin {
         if (held.getItem() instanceof SwordItem) ci.cancel();
     }
 
-    /**
-     * Keep the static sword settings, but do not apply the attack movement
-     * here. The attack translation is applied later by ItemRendererSwordSwingMixin
-     * after Minecraft has applied the item model's first-person transformation.
-     */
+    /** Apply only static sword position/rotation/scale settings during item rendering. */
     @Redirect(
             method = "renderFirstPersonItem",
             at = @At(
