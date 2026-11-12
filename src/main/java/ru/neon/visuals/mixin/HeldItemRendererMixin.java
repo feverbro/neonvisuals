@@ -35,7 +35,7 @@ public abstract class HeldItemRendererMixin {
         matrices.push();
         try {
             float swingOffset = NeonVisualsClient.getSwordSwingOffset();
-            float handDirection = leftHanded ? 1.0f : -1.0f;
+            float handDirection = leftHanded ? -1.0f : 1.0f;
             // Horizontal-only movement: the sword shifts left on a hit and smoothly returns.
             matrices.translate(
                     config.swordX / 100.0 - swingOffset * handDirection,
