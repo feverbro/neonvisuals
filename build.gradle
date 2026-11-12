@@ -20,7 +20,7 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+    annotationProcessor "net.fabricmc:sponge-mixin:0.13.3+mixin.0.8.5"
 }
 
 loom {
