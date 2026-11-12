@@ -9,8 +9,7 @@
     "HeldItemRendererMixin",
     "BackgroundRendererMixin",
     "EntityRenderDispatcherMixin",
-    "ItemRendererMixin",
-  ],
+    "ItemRendererMixin"\n  ],
   "injectors": {
     "defaultRequire": 1
   },
