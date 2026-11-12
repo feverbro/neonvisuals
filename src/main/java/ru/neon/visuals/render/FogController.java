@@ -14,8 +14,11 @@ public final class FogController {
         if (!config.fogEnabled) return;
 
         int color = config.fogColor;
-        RenderSystem.setShaderFogStart(config.fogStart);
-        RenderSystem.setShaderFogEnd(Math.max(config.fogStart + 2, config.fogEnd));
+        // Keep the fog range in world-block units and let it reach the configured horizon.
+        float start = Math.max(0.0f, config.fogStart);
+        float end = Math.max(start + 2.0f, config.fogEnd);
+        RenderSystem.setShaderFogStart(start);
+        RenderSystem.setShaderFogEnd(end);
         RenderSystem.setShaderFogColor(
                 ((color >> 16) & 0xFF) / 255.0f,
                 ((color >> 8) & 0xFF) / 255.0f,
