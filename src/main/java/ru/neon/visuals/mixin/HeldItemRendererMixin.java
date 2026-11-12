@@ -8,36 +8,40 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.SwordItem;
-import net.minecraft.util.Arm;
 import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import ru.neon.visuals.NeonVisualsClient;
 import ru.neon.visuals.config.VisualConfig;
 
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Remove the complete vanilla first-person swing transform for swords.
-     * Equip lowering/raising is left untouched; the sword's attack movement is
-     * supplied exclusively by NeonVisuals below.
+     * Remove vanilla attack progress before renderFirstPersonItem applies any
+     * swing-dependent transforms. Equip progress remains untouched.
+     *
+     * In the 1.21 method descriptor the float arguments are tickDelta, pitch,
+     * swingProgress and equipProgress, so swingProgress has float ordinal 2.
      */
-    @Inject(method = "applySwingOffset", at = @At("HEAD"), cancellable = true)
-    private void neonvisuals$removeVanillaSwordSwing(MatrixStack matrices, Arm arm,
-                                                      float swingProgress, CallbackInfo ci) {
+    @ModifyVariable(
+            method = "renderFirstPersonItem",
+            at = @At("HEAD"),
+            argsOnly = true,
+            ordinal = 2
+    )
+    private float neonvisuals$removeVanillaSwordSwing(float swingProgress) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (!VisualConfig.get().swordAdjust || client.player == null) return;
+        if (!VisualConfig.get().swordAdjust || client.player == null) return swingProgress;
 
-        boolean mainHand = arm == client.player.getMainArm();
-        ItemStack held = mainHand
-                ? client.player.getMainHandStack()
-                : client.player.getOffHandStack();
-        if (held.getItem() instanceof SwordItem) {
-            ci.cancel();
+        // The method renders one hand at a time; check both held stacks because
+        // the method's hand argument is not needed for the main-hand sword case.
+        if (client.player.getMainHandStack().getItem() instanceof SwordItem
+                || client.player.getOffHandStack().getItem() instanceof SwordItem) {
+            return 0.0f;
         }
+        return swingProgress;
     }
 
     @Redirect(
