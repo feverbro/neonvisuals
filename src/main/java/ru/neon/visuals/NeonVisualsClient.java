@@ -25,6 +25,9 @@ public final class NeonVisualsClient implements ClientModInitializer {
     private static final Deque<Long> LEFT_CLICKS = new ArrayDeque<>();
     private static final Random RANDOM = new Random();
     private static long lastImpactAt;
+    private static long lastSwordSwingAtNanos;
+    private static LivingEntity trackedTarget;
+    private static long trackedTargetExpiresAt;
     private static long lastParticleBurstAt;
     private static int lastParticleTargetId = -1;
     private static boolean wasOnGround;
@@ -64,6 +67,11 @@ public final class NeonVisualsClient implements ClientModInitializer {
         if (client.player == null || client.world == null) {
             wasOnGround = false;
             return;
+        }
+
+        if (client.crosshairTarget instanceof EntityHitResult hit
+                && hit.getEntity() instanceof LivingEntity living && living != client.player) {
+            rememberTarget(living);
         }
 
         boolean onGround = client.player.isOnGround();
@@ -119,6 +127,8 @@ public final class NeonVisualsClient implements ClientModInitializer {
         if (client.player == null || client.world == null || target == null || target.isRemoved()) return;
 
         lastImpactAt = System.currentTimeMillis();
+        if (target instanceof LivingEntity living && living != player) rememberTarget(living);
+        if (config.swordAdjust && config.swordSway) lastSwordSwingAtNanos = System.nanoTime();
         if (config.hitParticles) spawnHitBurst(target);
     }
 
@@ -172,6 +182,40 @@ public final class NeonVisualsClient implements ClientModInitializer {
         // Vanilla sweep slash makes the hit unmistakable at close range.
         client.world.addParticle(ParticleTypes.SWEEP_ATTACK,
                 centerX, box.minY + 0.12, centerZ, 0.0, 0.0, 0.0);
+    }
+
+    private static void rememberTarget(LivingEntity target) {
+        if (target == null || target.isRemoved() || !target.isAlive()) return;
+        trackedTarget = target;
+        trackedTargetExpiresAt = System.currentTimeMillis() + 30_000L;
+    }
+
+    /** Last aimed-at/attacked entity, retained for 30 seconds. */
+    public static LivingEntity getTrackedTarget() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (trackedTarget == null || trackedTarget.isRemoved() || !trackedTarget.isAlive()
+                || client.world == null || trackedTarget.getWorld() != client.world
+                || System.currentTimeMillis() > trackedTargetExpiresAt) {
+            trackedTarget = null;
+            return null;
+        }
+        return trackedTarget;
+    }
+
+    public static int getTargetHudSecondsRemaining() {
+        if (getTrackedTarget() == null) return 0;
+        return (int) Math.max(0L, (trackedTargetExpiresAt - System.currentTimeMillis() + 999L) / 1000L);
+    }
+
+    /** Horizontal-only attack motion: smooth move left, then return. No idle bobbing. */
+    public static float getSwordSwingOffset() {
+        VisualConfig config = VisualConfig.get();
+        if (!config.swordAdjust || !config.swordSway || lastSwordSwingAtNanos == 0L) return 0.0f;
+
+        long durationMs = Math.max(180L, 720L - config.swordSwaySpeed * 10L);
+        double progress = (System.nanoTime() - lastSwordSwingAtNanos) / (durationMs * 1_000_000.0);
+        if (progress >= 1.0 || progress < 0.0) return 0.0f;
+        return (float) Math.sin(Math.PI * progress) * (config.swordSwayAngle / 100.0f);
     }
 
     public static int getCps() {

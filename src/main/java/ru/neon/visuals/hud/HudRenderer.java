@@ -54,15 +54,15 @@ public final class HudRenderer {
     }
 
     private static int drawInfoLine(DrawContext context, int x, int y, String label, String value, VisualConfig config) {
-        int width = 12 + MinecraftClient.getInstance().textRenderer.getWidth(label)
-                + MinecraftClient.getInstance().textRenderer.getWidth(value) + 16;
-        int height = config.compactHud ? 13 : 15;
+        int width = 18 + MinecraftClient.getInstance().textRenderer.getWidth(label)
+                + MinecraftClient.getInstance().textRenderer.getWidth(value) + 20;
+        int height = config.compactHud ? 15 : 18;
         drawPanel(context, x, y, width, height, config);
-        context.fill(x, y + 2, x + 2, y + height - 2, config.accentColor);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, label, x + 7, y + 3, config.accentColor);
-        int valueX = x + width - 6 - MinecraftClient.getInstance().textRenderer.getWidth(value);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, value, valueX, y + 3, 0xFFFFFFFF);
-        return y + (config.compactHud ? 15 : 18);
+        context.fill(x + 1, y + 3, x + 3, y + height - 3, config.accentColor);
+        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, label, x + 8, y + 4, config.accentColor);
+        int valueX = x + width - 8 - MinecraftClient.getInstance().textRenderer.getWidth(value);
+        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, value, valueX, y + 4, 0xFFF4F7FC);
+        return y + (config.compactHud ? 17 : 21);
     }
 
     private static void drawCrosshair(MinecraftClient client, DrawContext context, VisualConfig config) {
@@ -141,45 +141,52 @@ public final class HudRenderer {
     }
 
     private static void drawTargetHud(DrawContext context, MinecraftClient client, VisualConfig config) {
-        if (!(client.crosshairTarget instanceof EntityHitResult hit)
-                || !(hit.getEntity() instanceof LivingEntity target)) return;
+        LivingEntity target = NeonVisualsClient.getTrackedTarget();
+        if (target == null) return;
 
-        int x = context.getScaledWindowWidth() - 166;
-        int y = 8;
-        int width = 158;
-        int height = 48;
+        int x = context.getScaledWindowWidth() - 184;
+        int y = 10;
+        int width = 174;
+        int height = 66;
         drawHudCard(context, x, y, width, height, config);
-        context.fill(x, y, x + 3, y + height, config.accentColor);
+        context.fill(x, y + 1, x + 3, y + height - 1, config.accentColor);
+        context.drawTextWithShadow(client.textRenderer, "TARGET", x + 10, y + 7, config.accentColor);
 
         String name = target.getDisplayName().getString();
-        int maxNameWidth = width - 55;
+        int maxNameWidth = 112;
         while (client.textRenderer.getWidth(name) > maxNameWidth && name.length() > 4) {
             name = name.substring(0, name.length() - 2) + "…";
         }
-        context.drawTextWithShadow(client.textRenderer, name, x + 9, y + 7, 0xFFFFFFFF);
+        context.drawTextWithShadow(client.textRenderer, name, x + 10, y + 21, 0xFFF4F7FC);
+
+        String timer = NeonVisualsClient.getTargetHudSecondsRemaining() + "s";
+        int timerWidth = client.textRenderer.getWidth(timer);
+        context.drawTextWithShadow(client.textRenderer, timer, x + width - timerWidth - 9, y + 7, 0xFF9AAAC0);
 
         float health = Math.max(0.0f, target.getHealth());
         float maxHealth = Math.max(1.0f, target.getMaxHealth());
         float ratio = MathHelper.clamp(health / maxHealth, 0.0f, 1.0f);
         int hpColor = ratio > 0.60f ? 0xFF55DDA1 : ratio > 0.30f ? 0xFFFFC75E : 0xFFFF667A;
-        String hpText = String.format(Locale.ROOT, "%.1f / %.0f", health, maxHealth);
-        context.drawTextWithShadow(client.textRenderer, hpText, x + 9, y + 20, 0xFFD7E0EC);
         context.drawTextWithShadow(client.textRenderer,
-                String.format(Locale.ROOT, "%.1fm", client.player.distanceTo(target)),
-                x + width - 38, y + 7, 0xFF98A9BF);
+                String.format(Locale.ROOT, "%.1f HP", health), x + 10, y + 37, hpColor);
+        String distance = String.format(Locale.ROOT, "%.1fm", client.player.distanceTo(target));
+        int distanceWidth = client.textRenderer.getWidth(distance);
+        context.drawTextWithShadow(client.textRenderer, distance, x + width - distanceWidth - 9, y + 37, 0xFF9AAAC0);
 
-        context.fill(x + 9, y + 35, x + width - 9, y + 41, 0xFF263143);
-        int barWidth = (int) ((width - 18) * ratio);
-        if (barWidth > 0) context.fill(x + 9, y + 35, x + 9 + barWidth, y + 41, hpColor);
+        int barX = x + 10;
+        int barY = y + 53;
+        int barWidth = width - 20;
+        context.fill(barX, barY, barX + barWidth, barY + 5, 0xFF263143);
+        if (ratio > 0.0f) context.fill(barX, barY, barX + (int) (barWidth * ratio), barY + 5, hpColor);
     }
 
     private static void drawPotionHud(DrawContext context, MinecraftClient client, VisualConfig config) {
         var effects = client.player.getStatusEffects();
         if (effects.isEmpty()) return;
 
-        int x = context.getScaledWindowWidth() - 166;
-        int y = config.targetHud && client.crosshairTarget instanceof EntityHitResult ? 62 : 8;
-        int width = 158;
+        int x = context.getScaledWindowWidth() - 184;
+        int y = config.targetHud && NeonVisualsClient.getTrackedTarget() != null ? 84 : 10;
+        int width = 174;
         int count = Math.min(6, effects.size());
         int height = 18 + count * 18;
         drawHudCard(context, x, y, width, height, config);
@@ -224,13 +231,14 @@ public final class HudRenderer {
     }
 
     private static void drawHudCard(DrawContext context, int x, int y, int width, int height, VisualConfig config) {
-        int alpha = Math.min(235, Math.max(150, config.panelOpacity));
-        context.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x44000000);
-        context.fill(x, y, x + width, y + height, (alpha << 24) | 0x000B1220);
-        context.fill(x, y, x + width, y + 1, (config.accentColor & 0x00FFFFFF) | 0xAA000000);
-        context.fill(x, y + height - 1, x + width, y + height, 0x553D4F69);
-        context.fill(x, y, x + 1, y + height, 0x554A5C75);
-        context.fill(x + width - 1, y, x + width, y + height, 0x554A5C75);
+        int alpha = Math.min(238, Math.max(165, config.panelOpacity));
+        context.fill(x + 3, y + 3, x + width + 3, y + height + 3, 0x55000000);
+        context.fill(x, y, x + width, y + height, (alpha << 24) | 0x0008121F);
+        context.fill(x + 1, y + 1, x + width - 1, y + 2, (config.accentColor & 0x00FFFFFF) | 0xCC000000);
+        context.fill(x, y + height - 1, x + width, y + height, 0x66475A73);
+        context.fill(x, y, x + 1, y + height, 0x774A5C75);
+        context.fill(x + width - 1, y, x + width, y + height, 0x774A5C75);
+        context.fill(x + 5, y + height - 2, x + width - 5, y + height - 1, 0x223F5874);
     }
 
     private static void drawKey(DrawContext context, MinecraftClient client, VisualConfig config,
@@ -244,8 +252,11 @@ public final class HudRenderer {
 
     private static void drawPanel(DrawContext context, int x, int y, int width, int height, VisualConfig config) {
         int alpha = config.panelOpacity;
-        context.fill(x, y, x + width, y + height, (alpha << 24) | 0x00101827);
-        context.fill(x, y, x + width, y + 1, (config.accentColor & 0x00FFFFFF) | 0x66000000);
-        context.fill(x, y + height - 1, x + width, y + height, 0x332E3A4E);
+        context.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x44000000);
+        context.fill(x, y, x + width, y + height, (alpha << 24) | 0x000B1422);
+        context.fill(x + 1, y + 1, x + width - 1, y + 2, (config.accentColor & 0x00FFFFFF) | 0x99000000);
+        context.fill(x, y + height - 1, x + width, y + height, 0x55465A72);
+        context.fill(x, y, x + 1, y + height, 0x66465A72);
+        context.fill(x + width - 1, y, x + width, y + height, 0x66465A72);
     }
 }

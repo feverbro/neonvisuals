@@ -11,6 +11,7 @@ import net.minecraft.util.math.RotationAxis;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import ru.neon.visuals.NeonVisualsClient;
 import ru.neon.visuals.config.VisualConfig;
 
 @Mixin(HeldItemRenderer.class)
@@ -33,12 +34,15 @@ public abstract class HeldItemRendererMixin {
 
         matrices.push();
         try {
-            matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
-            double seconds = System.nanoTime() / 1_000_000_000.0;
-            float sway = config.swordSway
-                    ? (float) Math.sin(seconds * config.swordSwaySpeed / 10.0) * config.swordSwayAngle
-                    : 0.0f;
-            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation + sway));
+            float swingOffset = NeonVisualsClient.getSwordSwingOffset();
+            float handDirection = leftHanded ? 1.0f : -1.0f;
+            // Horizontal-only movement: the sword shifts left on a hit and smoothly returns.
+            matrices.translate(
+                    config.swordX / 100.0 - swingOffset * handDirection,
+                    config.swordY / 100.0,
+                    config.swordZ / 100.0
+            );
+            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);

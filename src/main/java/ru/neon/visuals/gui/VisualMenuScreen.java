@@ -161,9 +161,9 @@ public final class VisualMenuScreen extends Screen {
                 y = settingStepper(context, mouseX, mouseY, "Z offset", c.swordZ, -50, 50, settingsX, y, 14);
                 y = settingStepper(context, mouseX, mouseY, "Scale %", c.swordScale, 50, 150, settingsX, y, 15);
                 y = settingStepper(context, mouseX, mouseY, "Rotation", c.swordRotation, -180, 180, settingsX, y, 16);
-                y = settingToggle(context, mouseX, mouseY, "Smooth sway", c.swordSway, settingsX, y, 23);
-                y = settingStepper(context, mouseX, mouseY, "Sway angle", c.swordSwayAngle, 0, 25, settingsX, y, 24);
-                y = settingStepper(context, mouseX, mouseY, "Sway speed", c.swordSwaySpeed, 1, 50, settingsX, y, 25);
+                y = settingToggle(context, mouseX, mouseY, "Attack swing", c.swordSway, settingsX, y, 23);
+                y = settingStepper(context, mouseX, mouseY, "Swing distance", c.swordSwayAngle, 0, 25, settingsX, y, 24);
+                y = settingStepper(context, mouseX, mouseY, "Swing speed", c.swordSwaySpeed, 1, 50, settingsX, y, 25);
             }
             case "fog" -> {
                 y = settingToggle(context, mouseX, mouseY, "Fog enabled", c.fogEnabled, settingsX, y, 17);
