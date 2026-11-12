@@ -275,6 +275,17 @@ public final class VisualMenuScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (inside(mouseX, mouseY, listX - 6, panelY + 76, listW + 10, panelH - 108)) {
+            int maxScroll = Math.max(0, entriesForTab().size() - 7);
+            if (verticalAmount < 0) scroll = clamp(scroll + 1, 0, maxScroll);
+            else if (verticalAmount > 0) scroll = clamp(scroll - 1, 0, maxScroll);
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         VisualConfig c = VisualConfig.get();
         // Sidebar tabs
@@ -295,6 +306,7 @@ public final class VisualMenuScreen extends Screen {
         for (int i = 0; i < entries.size(); i++) {
             Entry entry = entries.get(i);
             int y = startY + i * rowH - scroll * rowH;
+            if (y < panelY + 76 || y + 29 > panelY + panelH - 32) continue;
             if (!inside(mouseX, mouseY, listX - 5, y, listW + 7, 29)) continue;
             selected = entry.key;
             if (button == 1) return true;
