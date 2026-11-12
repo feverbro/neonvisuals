@@ -49,20 +49,22 @@ public final class VisualMenuScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, width, height, 0xA9050912);
-        panelW = Math.min(650, width - 24);
-        panelH = Math.min(370, height - 24);
+        panelW = Math.min(720, width - 28);
+        panelH = Math.min(410, height - 28);
         panelW = Math.max(420, panelW);
         panelH = Math.max(280, panelH);
         panelX = (width - panelW) / 2;
         panelY = (height - panelH) / 2;
-        sideW = 112;
+        sideW = 124;
         listX = panelX + sideW + 14;
-        settingsW = Math.max(164, Math.min(220, panelW - sideW - 260));
+        settingsW = Math.max(184, Math.min(236, panelW - sideW - 260));
         listW = panelW - sideW - settingsW - 42;
         settingsX = listX + listW + 12;
 
-        drawPanel(context, panelX, panelY, panelW, panelH, 0xF20D1422);
-        context.fill(panelX, panelY, panelX + panelW, panelY + 2, VisualConfig.get().accentColor);
+        drawPanel(context, panelX, panelY, panelW, panelH, 0xF20B1220);
+        context.fill(panelX + 2, panelY + 2, panelX + panelW - 2, panelY + 4, VisualConfig.get().accentColor);
+        context.fill(panelX + 2, panelY + 5, panelX + panelW - 2, panelY + 6,
+                (VisualConfig.get().accentColor & 0x00FFFFFF) | 0x22000000);
         drawHeader(context);
         drawSidebar(context, mouseX, mouseY);
         drawModuleList(context, mouseX, mouseY);
@@ -71,9 +73,15 @@ public final class VisualMenuScreen extends Screen {
     }
 
     private void drawHeader(DrawContext context) {
-        context.drawTextWithShadow(textRenderer, "NEON", panelX + 16, panelY + 14, 0xFFFFFFFF);
-        context.drawTextWithShadow(textRenderer, "VISUALS", panelX + 54, panelY + 14, VisualConfig.get().accentColor);
-        context.drawTextWithShadow(textRenderer, "FABRIC 1.21  /  CLIENT VISUALS", panelX + 16, panelY + 30, 0xFF8190A6);
+        context.fill(panelX + 16, panelY + 13, panelX + 38, panelY + 35, 0xFF17283C);
+        context.fill(panelX + 16, panelY + 13, panelX + 38, panelY + 15, VisualConfig.get().accentColor);
+        context.drawCenteredTextWithShadow(textRenderer, "N", panelX + 27, panelY + 19, 0xFFFFFFFF);
+        context.drawTextWithShadow(textRenderer, "NEON", panelX + 46, panelY + 12, 0xFFFFFFFF);
+        context.drawTextWithShadow(textRenderer, "VISUALS", panelX + 84, panelY + 12, VisualConfig.get().accentColor);
+        context.drawTextWithShadow(textRenderer, "FABRIC 1.21  /  CLIENT VISUALS", panelX + 46, panelY + 27, 0xFF8190A6);
+        context.fill(panelX + panelW - 78, panelY + 15, panelX + panelW - 16, panelY + 33, 0xFF142438);
+        context.fill(panelX + panelW - 74, panelY + 21, panelX + panelW - 68, panelY + 27, 0xFF61DDA8);
+        context.drawTextWithShadow(textRenderer, "CLIENT", panelX + panelW - 62, panelY + 20, 0xFFB9C8D8);
         context.fill(panelX + 14, panelY + 48, panelX + panelW - 14, panelY + 49, 0x334B5C74);
     }
 
@@ -153,6 +161,9 @@ public final class VisualMenuScreen extends Screen {
                 y = settingStepper(context, mouseX, mouseY, "Z offset", c.swordZ, -50, 50, settingsX, y, 14);
                 y = settingStepper(context, mouseX, mouseY, "Scale %", c.swordScale, 50, 150, settingsX, y, 15);
                 y = settingStepper(context, mouseX, mouseY, "Rotation", c.swordRotation, -180, 180, settingsX, y, 16);
+                y = settingToggle(context, mouseX, mouseY, "Smooth sway", c.swordSway, settingsX, y, 23);
+                y = settingStepper(context, mouseX, mouseY, "Sway angle", c.swordSwayAngle, 0, 25, settingsX, y, 24);
+                y = settingStepper(context, mouseX, mouseY, "Sway speed", c.swordSwaySpeed, 1, 50, settingsX, y, 25);
             }
             case "fog" -> {
                 y = settingToggle(context, mouseX, mouseY, "Fog enabled", c.fogEnabled, settingsX, y, 17);
@@ -236,11 +247,12 @@ public final class VisualMenuScreen extends Screen {
     }
 
     private void drawPanel(DrawContext context, int x, int y, int w, int h, int color) {
+        context.fill(x - 4, y - 4, x + w + 4, y + h + 4, 0x55000000);
         context.fill(x, y, x + w, y + h, color);
-        context.fill(x, y, x + w, y + 1, 0x553F5874);
+        context.fill(x, y, x + w, y + 1, 0x99516A88);
         context.fill(x, y + h - 1, x + w, y + h, 0x773F5874);
-        context.fill(x, y, x + 1, y + h, 0x553F5874);
-        context.fill(x + w - 1, y, x + w, y + h, 0x553F5874);
+        context.fill(x, y, x + 1, y + h, 0x77516A88);
+        context.fill(x + w - 1, y, x + w, y + h, 0x77516A88);
     }
 
     private List<Entry> entriesForTab() {
@@ -266,6 +278,8 @@ public final class VisualMenuScreen extends Screen {
                 entries.add(new Entry("keys", "Keystrokes", "WASD and jump key display", () -> c.keystrokesHud));
                 entries.add(new Entry("totems", "Totem Counter", "Totems in inventory", () -> c.totemHud));
                 entries.add(new Entry("armor", "Armor HUD", "Durability of worn armor", () -> c.armorHud));
+                entries.add(new Entry("targethud", "Target HUD", "Target name and health bar", () -> c.targetHud));
+                entries.add(new Entry("potionhud", "Potion HUD", "Active effects and timers", () -> c.potionHud));
             }
             case STYLE -> {
                 entries.add(new Entry("style", "HUD Theme", "Compact layout and colors", () -> true));
@@ -347,6 +361,9 @@ public final class VisualMenuScreen extends Screen {
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 58)) != 0) c.swordZ = clamp(c.swordZ + direction, -50, 50);
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 87)) != 0) c.swordScale = clamp(c.swordScale + direction * 5, 50, 150);
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 116)) != 0) c.swordRotation = clamp(c.swordRotation + direction * 5, -180, 180);
+                else if (inside(mouseX, mouseY, x + settingsW - 48, y + 144, 44, 18)) c.swordSway = !c.swordSway;
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 173)) != 0) c.swordSwayAngle = clamp(c.swordSwayAngle + direction, 0, 25);
+                else if ((direction = stepperHit(mouseX, mouseY, x, y + 202)) != 0) c.swordSwaySpeed = clamp(c.swordSwaySpeed + direction, 1, 50);
                 else return super.mouseClicked(mouseX, mouseY, button);
             }
             case "fog" -> {
@@ -416,6 +433,8 @@ public final class VisualMenuScreen extends Screen {
             case "keys" -> c.keystrokesHud = value;
             case "totems" -> c.totemHud = value;
             case "armor" -> c.armorHud = value;
+            case "targethud" -> c.targetHud = value;
+            case "potionhud" -> c.potionHud = value;
             default -> { }
         }
     }

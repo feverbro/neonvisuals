@@ -31,6 +31,8 @@ public final class VisualConfig {
     public boolean keystrokesHud = true;
     public boolean totemHud = true;
     public boolean armorHud = true;
+    public boolean targetHud = true;
+    public boolean potionHud = true;
 
     // Crosshair settings
     public int crosshairLength = 7;
@@ -52,6 +54,9 @@ public final class VisualConfig {
     public int swordZ = 0;
     public int swordScale = 100;
     public int swordRotation = 0;
+    public boolean swordSway = true;
+    public int swordSwayAngle = 9;
+    public int swordSwaySpeed = 20;
 
     // Client-side terrain fog.
     public boolean fogEnabled = false;
@@ -113,6 +118,8 @@ public final class VisualConfig {
         swordZ = clamp(swordZ, -50, 50);
         swordScale = clamp(swordScale, 50, 150);
         swordRotation = clamp(swordRotation, -180, 180);
+        swordSwayAngle = clamp(swordSwayAngle, 0, 25);
+        swordSwaySpeed = clamp(swordSwaySpeed, 1, 50);
 
         fogStart = clamp(fogStart, 4, 240);
         fogEnd = clamp(fogEnd, fogStart + 4, 256);

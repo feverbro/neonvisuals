@@ -3,10 +3,13 @@ package ru.neon.visuals.hud;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.hit.EntityHitResult;
 import ru.neon.visuals.NeonVisualsClient;
 import ru.neon.visuals.config.VisualConfig;
 
@@ -46,6 +49,8 @@ public final class HudRenderer {
         }
         if (config.armorHud) drawArmor(context, client, config, x, y + 2);
         if (config.keystrokesHud) drawKeystrokes(context, client, config);
+        if (config.targetHud) drawTargetHud(context, client, config);
+        if (config.potionHud) drawPotionHud(context, client, config);
     }
 
     private static int drawInfoLine(DrawContext context, int x, int y, String label, String value, VisualConfig config) {
@@ -133,6 +138,99 @@ public final class HudRenderer {
         drawKey(context, client, config, x + 28, y + 23, 20, 20, "S", client.options.backKey.isPressed());
         drawKey(context, client, config, x + 51, y + 23, 20, 20, "D", client.options.rightKey.isPressed());
         drawKey(context, client, config, x + 5, y + 46, 66, 16, "SPACE", client.options.jumpKey.isPressed());
+    }
+
+    private static void drawTargetHud(DrawContext context, MinecraftClient client, VisualConfig config) {
+        if (!(client.crosshairTarget instanceof EntityHitResult hit)
+                || !(hit.getEntity() instanceof LivingEntity target)) return;
+
+        int x = context.getScaledWindowWidth() - 166;
+        int y = 8;
+        int width = 158;
+        int height = 48;
+        drawHudCard(context, x, y, width, height, config);
+        context.fill(x, y, x + 3, y + height, config.accentColor);
+
+        String name = target.getDisplayName().getString();
+        int maxNameWidth = width - 55;
+        while (client.textRenderer.getWidth(name) > maxNameWidth && name.length() > 4) {
+            name = name.substring(0, name.length() - 2) + "…";
+        }
+        context.drawTextWithShadow(client.textRenderer, name, x + 9, y + 7, 0xFFFFFFFF);
+
+        float health = Math.max(0.0f, target.getHealth());
+        float maxHealth = Math.max(1.0f, target.getMaxHealth());
+        float ratio = MathHelper.clamp(health / maxHealth, 0.0f, 1.0f);
+        int hpColor = ratio > 0.60f ? 0xFF55DDA1 : ratio > 0.30f ? 0xFFFFC75E : 0xFFFF667A;
+        String hpText = String.format(Locale.ROOT, "%.1f / %.0f", health, maxHealth);
+        context.drawTextWithShadow(client.textRenderer, hpText, x + 9, y + 20, 0xFFD7E0EC);
+        context.drawTextWithShadow(client.textRenderer,
+                String.format(Locale.ROOT, "%.1fm", client.player.distanceTo(target)),
+                x + width - 38, y + 7, 0xFF98A9BF);
+
+        context.fill(x + 9, y + 35, x + width - 9, y + 41, 0xFF263143);
+        int barWidth = (int) ((width - 18) * ratio);
+        if (barWidth > 0) context.fill(x + 9, y + 35, x + 9 + barWidth, y + 41, hpColor);
+    }
+
+    private static void drawPotionHud(DrawContext context, MinecraftClient client, VisualConfig config) {
+        var effects = client.player.getStatusEffects();
+        if (effects.isEmpty()) return;
+
+        int x = context.getScaledWindowWidth() - 166;
+        int y = config.targetHud && client.crosshairTarget instanceof EntityHitResult ? 62 : 8;
+        int width = 158;
+        int count = Math.min(6, effects.size());
+        int height = 18 + count * 18;
+        drawHudCard(context, x, y, width, height, config);
+        context.drawTextWithShadow(client.textRenderer, "ACTIVE EFFECTS", x + 9, y + 6, config.accentColor);
+
+        int row = 0;
+        for (StatusEffectInstance effect : effects) {
+            if (row >= 6) break;
+            int rowY = y + 20 + row * 18;
+            int color = 0xFF000000 | effect.getEffectType().value().getColor();
+            context.fill(x + 9, rowY + 2, x + 12, rowY + 13, color);
+
+            String name = effect.getEffectType().value().getName().getString();
+            String level = romanLevel(effect.getAmplifier() + 1);
+            String duration = effect.isInfinite() ? "∞" : formatDuration(effect.getDuration());
+            int allowed = width - 62;
+            while (client.textRenderer.getWidth(name) > allowed && name.length() > 4) {
+                name = name.substring(0, name.length() - 2) + "…";
+            }
+            context.drawTextWithShadow(client.textRenderer, name + " " + level, x + 16, rowY + 3, 0xFFEAF0F8);
+            int durationWidth = client.textRenderer.getWidth(duration);
+            context.drawTextWithShadow(client.textRenderer, duration, x + width - 8 - durationWidth,
+                    rowY + 3, 0xFF9EACC0);
+            row++;
+        }
+    }
+
+    private static String romanLevel(int level) {
+        return switch (level) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            default -> Integer.toString(level);
+        };
+    }
+
+    private static String formatDuration(int ticks) {
+        int seconds = Math.max(0, ticks) / 20;
+        return String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60);
+    }
+
+    private static void drawHudCard(DrawContext context, int x, int y, int width, int height, VisualConfig config) {
+        int alpha = Math.min(235, Math.max(150, config.panelOpacity));
+        context.fill(x + 2, y + 2, x + width + 2, y + height + 2, 0x44000000);
+        context.fill(x, y, x + width, y + height, (alpha << 24) | 0x000B1220);
+        context.fill(x, y, x + width, y + 1, (config.accentColor & 0x00FFFFFF) | 0xAA000000);
+        context.fill(x, y + height - 1, x + width, y + height, 0x553D4F69);
+        context.fill(x, y, x + 1, y + height, 0x554A5C75);
+        context.fill(x + width - 1, y, x + width, y + height, 0x554A5C75);
     }
 
     private static void drawKey(DrawContext context, MinecraftClient client, VisualConfig config,

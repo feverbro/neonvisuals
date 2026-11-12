@@ -10,6 +10,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.util.hit.EntityHitResult;
 import org.lwjgl.glfw.GLFW;
 import ru.neon.visuals.config.VisualConfig;
 import ru.neon.visuals.gui.VisualMenuScreen;
@@ -24,6 +25,8 @@ public final class NeonVisualsClient implements ClientModInitializer {
     private static final Deque<Long> LEFT_CLICKS = new ArrayDeque<>();
     private static final Random RANDOM = new Random();
     private static long lastImpactAt;
+    private static long lastParticleBurstAt;
+    private static int lastParticleTargetId = -1;
     private static boolean wasOnGround;
     private static int tickCounter;
 
@@ -101,6 +104,12 @@ public final class NeonVisualsClient implements ClientModInitializer {
         long now = System.currentTimeMillis();
         LEFT_CLICKS.addLast(now);
 
+        // Fallback path: the mouse event can happen before the interaction manager callback.
+        VisualConfig config = VisualConfig.get();
+        if (config.hitParticles && client.player != null && client.world != null
+                && client.crosshairTarget instanceof EntityHitResult hit) {
+            spawnHitBurst(hit.getEntity());
+        }
     }
 
     /** Called after the client attack method has processed a melee attack attempt. */
@@ -109,26 +118,60 @@ public final class NeonVisualsClient implements ClientModInitializer {
         VisualConfig config = VisualConfig.get();
         if (client.player == null || client.world == null || target == null || target.isRemoved()) return;
 
-        if (config.hitMarker || config.hitParticles) {
-            lastImpactAt = System.currentTimeMillis();
-        }
-        if (!config.hitParticles || !(target instanceof LivingEntity livingTarget)) return;
+        lastImpactAt = System.currentTimeMillis();
+        if (config.hitParticles) spawnHitBurst(target);
+    }
 
-        var bounds = livingTarget.getBoundingBox();
+    /** Spawn a visible local burst. A short per-target guard prevents mouse + attack hooks doubling it. */
+    private static void spawnHitBurst(Entity target) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        VisualConfig config = VisualConfig.get();
+        if (client.player == null || client.world == null || !(target instanceof LivingEntity living) || target.isRemoved()) return;
+
+        long now = System.currentTimeMillis();
+        if (lastParticleTargetId == target.getId() && now - lastParticleBurstAt < 110L) return;
+        lastParticleTargetId = target.getId();
+        lastParticleBurstAt = now;
+        lastImpactAt = now;
+
+        var box = living.getBoundingBox();
+        double centerX = (box.minX + box.maxX) * 0.5;
+        double centerZ = (box.minZ + box.maxZ) * 0.5;
+        double radius = Math.max(0.35, Math.max(box.getXLength(), box.getZLength()) * 0.75);
         double spread = config.particleSpread / 100.0;
         double speed = config.particleSpeed / 100.0;
-        int amount = config.particleAmount;
-        for (int i = 0; i < amount; i++) {
-            double px = bounds.minX + RANDOM.nextDouble() * (bounds.maxX - bounds.minX);
-            double py = bounds.minY + livingTarget.getHeight() * (0.25 + RANDOM.nextDouble() * 0.6);
-            double pz = bounds.minZ + RANDOM.nextDouble() * (bounds.maxZ - bounds.minZ);
+        int amount = Math.max(12, config.particleAmount);
 
-            double vx = (RANDOM.nextDouble() - 0.5) * 0.42 * spread * speed;
-            double vy = (0.08 + RANDOM.nextDouble() * 0.28) * speed;
-            double vz = (RANDOM.nextDouble() - 0.5) * 0.42 * spread * speed;
-            var particle = (i % 3 == 0) ? ParticleTypes.ENCHANTED_HIT : ParticleTypes.CRIT;
-            client.world.addParticle(particle, px, py, pz, vx, vy, vz);
+        // Bright rotating-looking ring of crit and enchantment sparks.
+        for (int i = 0; i < amount; i++) {
+            double angle = (Math.PI * 2.0 * i) / amount;
+            double ring = radius * (0.75 + RANDOM.nextDouble() * 0.35);
+            double px = centerX + Math.cos(angle) * ring;
+            double py = box.minY + living.getHeight() * (0.28 + RANDOM.nextDouble() * 0.54);
+            double pz = centerZ + Math.sin(angle) * ring;
+            double outward = (0.07 + spread * 0.13) * speed;
+            double vx = Math.cos(angle) * outward + (RANDOM.nextDouble() - 0.5) * 0.035;
+            double vy = (0.07 + RANDOM.nextDouble() * 0.20) * speed;
+            double vz = Math.sin(angle) * outward + (RANDOM.nextDouble() - 0.5) * 0.035;
+            client.world.addParticle(i % 3 == 0 ? ParticleTypes.ENCHANTED_HIT : ParticleTypes.CRIT,
+                    px, py, pz, vx, vy, vz);
         }
+
+        // A smaller outer halo of long-lived white sparks.
+        int halo = Math.max(6, amount / 3);
+        for (int i = 0; i < halo; i++) {
+            double angle = (Math.PI * 2.0 * i) / halo;
+            double px = centerX + Math.cos(angle) * radius * 0.55;
+            double py = box.minY + living.getHeight() * (0.45 + RANDOM.nextDouble() * 0.25);
+            double pz = centerZ + Math.sin(angle) * radius * 0.55;
+            double velocity = (0.035 + spread * 0.055) * speed;
+            client.world.addParticle(ParticleTypes.END_ROD, px, py, pz,
+                    Math.cos(angle) * velocity, 0.045 * speed, Math.sin(angle) * velocity);
+        }
+
+        // Vanilla sweep slash makes the hit unmistakable at close range.
+        client.world.addParticle(ParticleTypes.SWEEP_ATTACK,
+                centerX, box.minY + 0.12, centerZ, 0.0, 0.0, 0.0);
     }
 
     public static int getCps() {

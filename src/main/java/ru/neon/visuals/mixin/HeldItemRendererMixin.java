@@ -34,7 +34,11 @@ public abstract class HeldItemRendererMixin {
         matrices.push();
         try {
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
-            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
+            double seconds = System.nanoTime() / 1_000_000_000.0;
+            float sway = config.swordSway
+                    ? (float) Math.sin(seconds * config.swordSwaySpeed / 10.0) * config.swordSwayAngle
+                    : 0.0f;
+            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation + sway));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);
