@@ -4,14 +4,14 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.FogShape;
 import ru.neon.visuals.config.VisualConfig;
 
-/** Applies custom fog uniforms while keeping the fog inside the actual view distance. */
+/** Applies the configured fog to terrain at the same distances as the camera render range. */
 public final class FogController {
     private static float lastViewDistance = 256.0f;
 
     private FogController() {
     }
 
-    /** Reuse the view distance calculated for the current world render pass. */
+    /** Reuse the distance calculated for the current terrain pass when entities are rendered. */
     public static void applyConfiguredFog() {
         applyConfiguredFog(lastViewDistance);
     }
@@ -21,15 +21,14 @@ public final class FogController {
         if (!config.fogEnabled) return;
 
         lastViewDistance = Math.max(4.0f, viewDistance);
-
-        int color = config.fogColor;
-
-        // The configured fog must not end beyond the camera's actual render range.
-        // Clamp the start as well, so short view distances still reach full fog color.
         float maxDistance = lastViewDistance;
-        float start = Math.min(Math.max(0.0f, config.fogStart), maxDistance - 2.0f);
+
+        // Begin blending close to the camera so fog is visible in the center,
+        // not only on distant silhouettes at the horizon.
+        float start = Math.min(Math.max(0.0f, config.fogStart), 2.0f);
         float end = Math.min(Math.max(start + 2.0f, config.fogEnd), maxDistance);
 
+        int color = config.fogColor;
         RenderSystem.setShaderFogStart(start);
         RenderSystem.setShaderFogEnd(end);
         RenderSystem.setShaderFogColor(
