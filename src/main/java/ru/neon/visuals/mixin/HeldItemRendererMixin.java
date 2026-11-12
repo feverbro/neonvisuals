@@ -21,10 +21,9 @@ import ru.neon.visuals.config.VisualConfig;
 @Mixin(HeldItemRenderer.class)
 public abstract class HeldItemRendererMixin {
     /**
-     * Zero only the swing progress belonging to the sword currently being
-     * rendered. The remaining method arguments are captured so an off-hand
-     * item is not affected just because the main hand holds a sword.
-     * Equip progress is deliberately left unchanged.
+     * Suppress vanilla swing progress for the exact stack being rendered.
+     * The extra target arguments let us inspect the ItemStack for this hand,
+     * without affecting the other hand or non-sword items.
      */
     @ModifyVariable(
             method = "renderFirstPersonItem",
@@ -38,15 +37,17 @@ public abstract class HeldItemRendererMixin {
             float tickDelta,
             float pitch,
             Hand hand,
-            float methodSwingProgress,
+            float originalSwingProgress,
             ItemStack item,
             float equipProgress,
             MatrixStack matrices,
             VertexConsumerProvider vertexConsumers,
             int light
     ) {
-        if (!VisualConfig.get().swordAdjust || item == null) return swingProgress;
-        return item.getItem() instanceof SwordItem ? 0.0f : swingProgress;
+        if (item != null && item.getItem() instanceof SwordItem) {
+            return 0.0f;
+        }
+        return swingProgress;
     }
 
     @Redirect(
