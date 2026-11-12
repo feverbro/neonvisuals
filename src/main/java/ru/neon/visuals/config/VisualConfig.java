@@ -60,7 +60,7 @@ public final class VisualConfig {
 
     // Client-side terrain fog.
     public boolean fogEnabled = false;
-    public int fogStart = 12;
+    public int fogStart = 0;
     public int fogEnd = 72;
     public int fogColor = 0xFFB9D9FF;
     public boolean fogSphere = false;
@@ -121,7 +121,7 @@ public final class VisualConfig {
         swordSwayAngle = clamp(swordSwayAngle, 0, 25);
         swordSwaySpeed = clamp(swordSwaySpeed, 1, 50);
 
-        fogStart = clamp(fogStart, 4, 240);
+        fogStart = clamp(fogStart, 0, 2);
         fogEnd = clamp(fogEnd, fogStart + 4, 256);
         fogColor |= 0xFF000000;
         glintWhiteness = clamp(glintWhiteness, 0, 100);
