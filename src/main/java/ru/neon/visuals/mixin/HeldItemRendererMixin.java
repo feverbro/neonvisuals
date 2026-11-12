@@ -42,7 +42,8 @@ public abstract class HeldItemRendererMixin {
                     config.swordY / 100.0,
                     config.swordZ / 100.0
             );
-            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation));
+            float swingRotation = swingOffset * 80.0f * handDirection;
+            matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(config.swordRotation + swingRotation));
             float scale = config.swordScale / 100.0f;
             matrices.scale(scale, scale, scale);
             renderer.renderItem(entity, stack, mode, leftHanded, matrices, consumers, light);
