@@ -18,7 +18,7 @@ public final class FogController {
 
     public static void applyConfiguredFog(float viewDistance) {
         VisualConfig config = VisualConfig.get();
-        if (!config.fogEnabled) return;
+        if (!config.fogEnabled || FogRenderGuard.isSuppressingFog()) return;
 
         lastViewDistance = Math.max(4.0f, viewDistance);
         float maxDistance = lastViewDistance;
