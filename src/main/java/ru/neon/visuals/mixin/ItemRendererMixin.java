@@ -1,6 +1,7 @@
 package ru.neon.visuals.mixin;
 
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.item.ItemRenderer;
@@ -21,26 +22,24 @@ import ru.neon.visuals.render.WhiteGlintVertexConsumer;
 @Mixin(ItemRenderer.class)
 public abstract class ItemRendererMixin {
     @Inject(
-            method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/world/World;III)V",
+            method = "renderItem(Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IILnet/minecraft/client/render/model/BakedModel;)V",
             at = @At("HEAD")
     )
-    private void neonvisuals$beginItemWithoutFog(LivingEntity entity, ItemStack stack,
-                                                  ModelTransformationMode renderMode, boolean leftHanded,
-                                                  MatrixStack matrices, VertexConsumerProvider vertexConsumers,
-                                                  World world, int light, int overlay, int seed,
-                                                  CallbackInfo ci) {
+    private void neonvisuals$beginItemWithoutFog(ItemStack stack, ModelTransformationMode renderMode,
+                                                  boolean leftHanded, MatrixStack matrices,
+                                                  VertexConsumerProvider vertexConsumers, int light,
+                                                  int overlay, BakedModel model, CallbackInfo ci) {
         FogRenderGuard.begin();
     }
 
     @Inject(
-            method = "renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/world/World;III)V",
+            method = "renderItem(Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IILnet/minecraft/client/render/model/BakedModel;)V",
             at = @At("RETURN")
     )
-    private void neonvisuals$endItemWithoutFog(LivingEntity entity, ItemStack stack,
-                                                ModelTransformationMode renderMode, boolean leftHanded,
-                                                MatrixStack matrices, VertexConsumerProvider vertexConsumers,
-                                                World world, int light, int overlay, int seed,
-                                                CallbackInfo ci) {
+    private void neonvisuals$endItemWithoutFog(ItemStack stack, ModelTransformationMode renderMode,
+                                                boolean leftHanded, MatrixStack matrices,
+                                                VertexConsumerProvider vertexConsumers, int light,
+                                                int overlay, BakedModel model, CallbackInfo ci) {
         FogRenderGuard.end();
     }
 
