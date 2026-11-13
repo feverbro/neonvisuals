@@ -9,14 +9,35 @@ import ru.neon.visuals.render.FogRenderGuard;
 
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin {
-    // Both InventoryScreen.drawEntity overloads are covered by the name-only selector.
-    @Inject(method = "drawEntity", at = @At("HEAD"))
+    @Inject(
+            method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;IIIIIFFFLnet/minecraft/entity/LivingEntity;)V",
+            at = @At("HEAD")
+    )
     private static void neonvisuals$beginPlayerPreviewWithoutFog(CallbackInfo ci) {
         FogRenderGuard.begin();
     }
 
-    @Inject(method = "drawEntity", at = @At("RETURN"))
+    @Inject(
+            method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;IIIIIFFFLnet/minecraft/entity/LivingEntity;)V",
+            at = @At("RETURN")
+    )
     private static void neonvisuals$endPlayerPreviewWithoutFog(CallbackInfo ci) {
+        FogRenderGuard.end();
+    }
+
+    @Inject(
+            method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/entity/LivingEntity;)V",
+            at = @At("HEAD")
+    )
+    private static void neonvisuals$beginModernPlayerPreviewWithoutFog(CallbackInfo ci) {
+        FogRenderGuard.begin();
+    }
+
+    @Inject(
+            method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;FFFLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;Lnet/minecraft/entity/LivingEntity;)V",
+            at = @At("RETURN")
+    )
+    private static void neonvisuals$endModernPlayerPreviewWithoutFog(CallbackInfo ci) {
         FogRenderGuard.end();
     }
 }
