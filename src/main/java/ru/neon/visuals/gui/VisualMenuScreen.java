@@ -147,6 +147,9 @@ public final class VisualMenuScreen extends Screen {
         VisualConfig c = VisualConfig.get();
         int y = panelY + 88;
 
+        // Keep long settings lists inside their column on small screens.
+        context.enableScissor(settingsX - 2, panelY + 82,
+                settingsX + settingsW + 2, panelY + panelH - 42);
         switch (selected) {
             case "crosshair" -> {
                 y = settingStepper(context, mouseX, mouseY, "Length", c.crosshairLength, 2, 18, settingsX, y, 1);
@@ -203,8 +206,10 @@ public final class VisualMenuScreen extends Screen {
                 y = colorPicker(context, mouseX, mouseY, settingsX, y);
             }
         }
+        context.disableScissor();
 
-        context.drawTextWithShadow(textRenderer, "Changes save automatically", settingsX, panelY + panelH - 34, 0xFF65D6A4);
+        context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("Changes save automatically", settingsW),
+                settingsX, panelY + panelH - 34, 0xFF65D6A4);
     }
 
     private int settingStepper(DrawContext context, int mouseX, int mouseY, String label, int value,
