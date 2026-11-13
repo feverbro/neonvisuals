@@ -69,11 +69,9 @@ public abstract class HeldItemRendererMixin {
         matrices.push();
         try {
             float pulse = config.swordSway ? NeonVisualsClient.getSwordSwingOffset() : 0.0f;
-            float distance = 0.28f + config.swordSwayAngle * 0.035f;
-
-            // Move only along the X coordinate; Y and Z stay unchanged.
-            float cameraX = -pulse * distance;
-            matrices.translate(cameraX, 0.0, 0.0);
+            // Rotate the sword to the right, then smoothly return it to rest.
+            float turnDegrees = pulse * config.swordSwayAngle;
+            matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-turnDegrees));
 
             // Static view-model settings remain independent of the swing.
             matrices.translate(config.swordX / 100.0, config.swordY / 100.0, config.swordZ / 100.0);
