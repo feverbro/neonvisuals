@@ -19,12 +19,13 @@ public abstract class BackgroundRendererMixin {
 
     /**
      * applyFogColor computes biome/sky colors internally, so override them
-     * after its calculations rather than before them.
+     * after its calculations rather than before them. Inventory-style screens
+     * keep the original sky color and do not receive the custom fog tint.
      */
     @Inject(method = "applyFogColor", at = @At("TAIL"))
     private static void neonvisuals$setFogHorizonColor(CallbackInfo ci) {
         VisualConfig config = VisualConfig.get();
-        if (!config.fogEnabled) return;
+        if (!config.fogEnabled || FogController.shouldSuppressFogForUi()) return;
 
         int color = config.fogColor;
         red = ((color >> 16) & 0xFF) / 255.0f;
@@ -37,7 +38,17 @@ public abstract class BackgroundRendererMixin {
     private static void neonvisuals$customFog(Camera camera, BackgroundRenderer.FogType fogType,
                                                float viewDistance, boolean thickFog, float tickDelta,
                                                CallbackInfo ci) {
-        if (VisualConfig.get().fogEnabled && fogType == BackgroundRenderer.FogType.FOG_TERRAIN) {
+        if (fogType != BackgroundRenderer.FogType.FOG_TERRAIN) return;
+
+        // The world behind the custom inventory must stay clear while its UI is open.
+        // Use a very distant fog range instead of changing the saved fog settings.
+        if (FogController.shouldSuppressFogForUi()) {
+            RenderSystem.setShaderFogStart(100000.0f);
+            RenderSystem.setShaderFogEnd(100001.0f);
+            return;
+        }
+
+        if (VisualConfig.get().fogEnabled) {
             FogController.applyConfiguredFog(viewDistance);
         }
     }
