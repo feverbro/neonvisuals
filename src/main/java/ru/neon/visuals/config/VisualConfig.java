@@ -65,10 +65,6 @@ public final class VisualConfig {
     public int fogColor = 0xFFB9D9FF;
     public boolean fogSphere = false;
 
-    // Enchantment glint tint.
-    public boolean whiteGlint = false;
-    public int glintWhiteness = 75;
-
     public int accentColor = 0xFF63D8FF;
     public int panelOpacity = 218;
     public boolean compactHud = false;
@@ -124,7 +120,6 @@ public final class VisualConfig {
         fogStart = clamp(fogStart, 0, 2);
         fogEnd = clamp(fogEnd, fogStart + 4, 256);
         fogColor |= 0xFF000000;
-        glintWhiteness = clamp(glintWhiteness, 0, 100);
 
         panelOpacity = clamp(panelOpacity, 100, 255);
         accentColor |= 0xFF000000;

@@ -189,10 +189,6 @@ public final class VisualMenuScreen extends Screen {
                 y = settingToggle(context, mouseX, mouseY, "Sphere shape", c.fogSphere, settingsX, y, 20);
                 y = fogColorPicker(context, mouseX, mouseY, settingsX, y);
             }
-            case "glint" -> {
-                y = settingToggle(context, mouseX, mouseY, "White enchant", c.whiteGlint, settingsX, y, 21);
-                y = settingStepper(context, mouseX, mouseY, "Whiteness", c.glintWhiteness, 0, 100, settingsX, y, 22);
-            }
             case "style" -> {
                 y = settingToggle(context, mouseX, mouseY, "Compact HUD", c.compactHud, settingsX, y, 8);
                 y = settingStepper(context, mouseX, mouseY, "Panel opacity", c.panelOpacity, 100, 255, settingsX, y, 9);
@@ -284,7 +280,6 @@ public final class VisualMenuScreen extends Screen {
                 entries.add(new Entry("particles", "Hit Particles", "Particles on melee attack", () -> c.hitParticles));
                 entries.add(new Entry("sword", "Sword Adjust", "First-person sword transform", () -> c.swordAdjust));
                 entries.add(new Entry("fog", "Custom Fog", "Distance, shape and color", () -> c.fogEnabled));
-                entries.add(new Entry("glint", "White Enchant", "Whiter enchantment effect", () -> c.whiteGlint));
                 entries.add(new Entry("jump", "Jump Circle", "Particle ring when jumping", () -> c.jumpCircle));
                 entries.add(new Entry("trail", "Player Trail", "Light trail while airborne", () -> c.playerTrail));
                 entries.add(new Entry("pulse", "Damage Pulse", "Subtle screen tint on damage", () -> c.damagePulse));
@@ -402,11 +397,6 @@ public final class VisualMenuScreen extends Screen {
                 else if (inside(mouseX, mouseY, x, y + 137, settingsW, 18)) chooseFogColor(mouseX, x);
                 else return super.mouseClicked(mouseX, mouseY, button);
             }
-            case "glint" -> {
-                if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.whiteGlint = !c.whiteGlint;
-                else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.glintWhiteness = clamp(c.glintWhiteness + direction * 5, 0, 100);
-                else return super.mouseClicked(mouseX, mouseY, button);
-            }
             case "style" -> {
                 if (inside(mouseX, mouseY, x + settingsW - 48, y - 1, 44, 18)) c.compactHud = !c.compactHud;
                 else if ((direction = stepperHit(mouseX, mouseY, x, y + 29)) != 0) c.panelOpacity = clamp(c.panelOpacity + direction * 10, 100, 255);
@@ -450,7 +440,6 @@ public final class VisualMenuScreen extends Screen {
             case "particles" -> c.hitParticles = value;
             case "sword" -> c.swordAdjust = value;
             case "fog" -> c.fogEnabled = value;
-            case "glint" -> c.whiteGlint = value;
             case "jump" -> c.jumpCircle = value;
             case "trail" -> c.playerTrail = value;
             case "pulse" -> c.damagePulse = value;
