@@ -110,7 +110,7 @@ public final class VisualMenuScreen extends Screen {
             case HUD -> "HUD ELEMENTS";
             case STYLE -> "INTERFACE";
         };
-        context.drawTextWithShadow(textRenderer, heading, listX, panelY + 62, 0xFF9BAAC0);
+        context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(heading, Math.max(0, listW)), listX, panelY + 62, 0xFF9BAAC0);
         List<Entry> entries = entriesForTab();
         int startY = panelY + 82;
         int rowH = 34;
@@ -124,8 +124,11 @@ public final class VisualMenuScreen extends Screen {
             int bg = chosen ? 0xFF1C2A3B : hover ? 0x66314155 : 0xAA121C2A;
             context.fill(listX - 5, y, listX + listW + 2, y + 29, bg);
             if (chosen) context.fill(listX - 5, y, listX - 3, y + 29, VisualConfig.get().accentColor);
-            context.drawTextWithShadow(textRenderer, entry.label, listX + 5, y + 5, 0xFFF0F4FA);
-            context.drawTextWithShadow(textRenderer, entry.description, listX + 5, y + 17, 0xFF8190A5);
+            int entryTextWidth = Math.max(0, listW - 55);
+            String safeLabel = textRenderer.trimToWidth(entry.label, entryTextWidth);
+            String safeDescription = textRenderer.trimToWidth(entry.description, entryTextWidth);
+            context.drawTextWithShadow(textRenderer, safeLabel, listX + 5, y + 5, 0xFFF0F4FA);
+            context.drawTextWithShadow(textRenderer, safeDescription, listX + 5, y + 17, 0xFF8190A5);
             int toggleColor = active ? 0xFF167A59 : 0xFF39485B;
             context.fill(listX + listW - 43, y + 6, listX + listW - 5, y + 23, toggleColor);
             String stateLabel = active ? "ON" : "OFF";
@@ -133,7 +136,8 @@ public final class VisualMenuScreen extends Screen {
                     listX + listW - 39, y + 10, 0xFFFFFFFF);
         }
         if (entries.size() > 7) {
-            context.drawTextWithShadow(textRenderer, "Scroll list  •  right click = settings", listX, panelY + panelH - 33, 0xFF708096);
+            String hint = textRenderer.trimToWidth("Scroll list  •  right click = settings", Math.max(0, listW));
+            context.drawTextWithShadow(textRenderer, hint, listX, panelY + panelH - 33, 0xFF708096);
         }
     }
 
@@ -153,11 +157,11 @@ public final class VisualMenuScreen extends Screen {
             }
             case "targethud" -> {
                 y = settingToggle(context, mouseX, mouseY, "Enable Target HUD", c.targetHud, settingsX, y, 26);
-                context.drawTextWithShadow(textRenderer, "Shows the last target for 30 seconds", settingsX, y + 1, 0xFF8190A5);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("Shows the last target for 30 seconds", settingsW), settingsX, y + 1, 0xFF8190A5);
             }
             case "potionhud" -> {
                 y = settingToggle(context, mouseX, mouseY, "Enable Potion HUD", c.potionHud, settingsX, y, 27);
-                context.drawTextWithShadow(textRenderer, "Displays active effects and timers", settingsX, y + 1, 0xFF8190A5);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("Displays active effects and timers", settingsW), settingsX, y + 1, 0xFF8190A5);
             }
             case "pulse" -> y = settingStepper(context, mouseX, mouseY, "Pulse strength", c.pulseStrength, 0, 200, settingsX, y, 6);
             case "particles" -> {
@@ -192,9 +196,9 @@ public final class VisualMenuScreen extends Screen {
                 y = colorPicker(context, mouseX, mouseY, settingsX, y);
             }
             default -> {
-                context.drawTextWithShadow(textRenderer, "Select a module", settingsX, y + 3, 0xFFE2E9F4);
-                context.drawTextWithShadow(textRenderer, "Right-click a row to open", settingsX, y + 18, 0xFF8190A5);
-                context.drawTextWithShadow(textRenderer, "its quick settings.", settingsX, y + 30, 0xFF8190A5);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("Select a module", settingsW), settingsX, y + 3, 0xFFE2E9F4);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("Right-click a row to open", settingsW), settingsX, y + 18, 0xFF8190A5);
+                context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth("its quick settings.", settingsW), settingsX, y + 30, 0xFF8190A5);
                 y += 54;
                 y = colorPicker(context, mouseX, mouseY, settingsX, y);
             }
@@ -205,7 +209,7 @@ public final class VisualMenuScreen extends Screen {
 
     private int settingStepper(DrawContext context, int mouseX, int mouseY, String label, int value,
                                int min, int max, int x, int y, int settingId) {
-        context.drawTextWithShadow(textRenderer, label, x, y + 3, 0xFFE0E7F0);
+        context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(label, Math.max(0, settingsW - 76)), x, y + 3, 0xFFE0E7F0);
         int bx = x + settingsW - 69;
         drawButton(context, bx, y - 1, 20, 18, "−", inside(mouseX, mouseY, bx, y - 1, 20, 18));
         context.drawTextWithShadow(textRenderer, Integer.toString(value), bx + 25, y + 3, 0xFFFFFFFF);
@@ -215,7 +219,7 @@ public final class VisualMenuScreen extends Screen {
 
     private int settingToggle(DrawContext context, int mouseX, int mouseY, String label, boolean value,
                               int x, int y, int settingId) {
-        context.drawTextWithShadow(textRenderer, label, x, y + 3, 0xFFE0E7F0);
+        context.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(label, Math.max(0, settingsW - 54)), x, y + 3, 0xFFE0E7F0);
         int bx = x + settingsW - 48;
         drawButton(context, bx, y - 1, 44, 18, value ? "ON" : "OFF", inside(mouseX, mouseY, bx, y - 1, 44, 18));
         return y + 29;
