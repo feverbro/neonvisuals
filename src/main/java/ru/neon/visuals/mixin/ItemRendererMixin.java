@@ -4,6 +4,7 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.VertexConsumerProvider.Immediate;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.math.MatrixStack;
@@ -29,6 +30,8 @@ public abstract class ItemRendererMixin {
                                                   boolean leftHanded, MatrixStack matrices,
                                                   VertexConsumerProvider vertexConsumers, int light,
                                                   int overlay, BakedModel model, CallbackInfo ci) {
+        // Flush previously queued world geometry before changing the global fog state.
+        if (vertexConsumers instanceof Immediate immediate) immediate.draw();
         FogRenderGuard.begin();
     }
 
@@ -40,6 +43,8 @@ public abstract class ItemRendererMixin {
                                                 boolean leftHanded, MatrixStack matrices,
                                                 VertexConsumerProvider vertexConsumers, int light,
                                                 int overlay, BakedModel model, CallbackInfo ci) {
+        // Item vertices are buffered; flush them while the custom fog is still disabled.
+        if (vertexConsumers instanceof Immediate immediate) immediate.draw();
         FogRenderGuard.end();
     }
 
