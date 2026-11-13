@@ -178,10 +178,14 @@ public final class HudRenderer {
         float maxHealth = Math.max(1.0f, target.getMaxHealth());
         float ratio = MathHelper.clamp(health / maxHealth, 0.0f, 1.0f);
         int hpColor = ratio > 0.60f ? 0xFF55DDA1 : ratio > 0.30f ? 0xFFFFC75E : 0xFFFF667A;
-        context.drawTextWithShadow(client.textRenderer,
-                String.format(Locale.ROOT, "%.1f HP", health), x + 10, y + 37, hpColor);
+        String healthText = String.format(Locale.ROOT, "%.1f HP", health);
         String distance = String.format(Locale.ROOT, "%.1fm", client.player.distanceTo(target));
         int distanceWidth = client.textRenderer.getWidth(distance);
+        int healthMaxWidth = Math.max(0, width - 28 - distanceWidth);
+        healthText = client.textRenderer.trimToWidth(healthText, healthMaxWidth);
+        if (!healthText.isEmpty()) {
+            context.drawTextWithShadow(client.textRenderer, healthText, x + 10, y + 37, hpColor);
+        }
         context.drawTextWithShadow(client.textRenderer, distance, x + width - distanceWidth - 9, y + 37, 0xFF9AAAC0);
 
         int barX = x + 10;
