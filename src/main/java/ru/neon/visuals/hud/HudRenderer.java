@@ -29,10 +29,13 @@ public final class HudRenderer {
 
         int x = 8;
         int y = 8;
-        if (config.fpsHud) y = drawInfoLine(context, x, y, "FPS", Integer.toString(client.getCurrentFps()), config);
+        boolean rightHudVisible = (config.targetHud && NeonVisualsClient.getTrackedTarget() != null)
+                || (config.potionHud && !client.player.getStatusEffects().isEmpty());
+        int maxInfoWidth = Math.max(76, context.getScaledWindowWidth() - 24 - (rightHudVisible ? 190 : 0));
+        if (config.fpsHud) y = drawInfoLine(context, x, y, "FPS", Integer.toString(client.getCurrentFps()), config, maxInfoWidth);
         if (config.coordinatesHud) {
             String coords = String.format(Locale.ROOT, "%.1f  %.1f  %.1f", client.player.getX(), client.player.getY(), client.player.getZ());
-            y = drawInfoLine(context, x, y, "XYZ", coords, config);
+            y = drawInfoLine(context, x, y, "XYZ", coords, config, maxInfoWidth);
         }
         if (config.pingHud) {
             int ping = 0;
@@ -40,28 +43,36 @@ public final class HudRenderer {
                 PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
                 if (entry != null) ping = entry.getLatency();
             }
-            y = drawInfoLine(context, x, y, "PING", ping + " ms", config);
+            y = drawInfoLine(context, x, y, "PING", ping + " ms", config, maxInfoWidth);
         }
-        if (config.cpsHud) y = drawInfoLine(context, x, y, "CPS", Integer.toString(NeonVisualsClient.getCps()), config);
+        if (config.cpsHud) y = drawInfoLine(context, x, y, "CPS", Integer.toString(NeonVisualsClient.getCps()), config, maxInfoWidth);
         if (config.totemHud) {
             int count = client.player.getInventory().count(Items.TOTEM_OF_UNDYING);
-            y = drawInfoLine(context, x, y, "TOTEMS", Integer.toString(count), config);
+            y = drawInfoLine(context, x, y, "TOTEMS", Integer.toString(count), config, maxInfoWidth);
         }
-        if (config.armorHud) drawArmor(context, client, config, x, y + 2);
+        int keystrokesTop = context.getScaledWindowHeight() - 70;
+        if (config.armorHud && y + 28 <= keystrokesTop - 4) drawArmor(context, client, config, x, y + 2);
         if (config.keystrokesHud) drawKeystrokes(context, client, config);
         if (config.targetHud) drawTargetHud(context, client, config);
         if (config.potionHud) drawPotionHud(context, client, config);
     }
 
-    private static int drawInfoLine(DrawContext context, int x, int y, String label, String value, VisualConfig config) {
-        int width = 18 + MinecraftClient.getInstance().textRenderer.getWidth(label)
-                + MinecraftClient.getInstance().textRenderer.getWidth(value) + 20;
+    private static int drawInfoLine(DrawContext context, int x, int y, String label, String value,
+                                     VisualConfig config, int maxWidth) {
+        var renderer = MinecraftClient.getInstance().textRenderer;
+        int labelWidth = renderer.getWidth(label);
+        int maxValueWidth = Math.max(0, maxWidth - 38 - labelWidth);
+        String shownValue = renderer.trimToWidth(value, maxValueWidth);
+        int valueWidth = renderer.getWidth(shownValue);
+        int width = Math.min(maxWidth, 18 + labelWidth + valueWidth + 20);
         int height = config.compactHud ? 15 : 18;
         drawPanel(context, x, y, width, height, config);
         context.fill(x + 1, y + 3, x + 3, y + height - 3, config.accentColor);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, label, x + 8, y + 4, config.accentColor);
-        int valueX = x + width - 8 - MinecraftClient.getInstance().textRenderer.getWidth(value);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, value, valueX, y + 4, 0xFFF4F7FC);
+        context.drawTextWithShadow(renderer, label, x + 8, y + 4, config.accentColor);
+        int valueX = x + width - 8 - valueWidth;
+        if (!shownValue.isEmpty()) {
+            context.drawTextWithShadow(renderer, shownValue, valueX, y + 4, 0xFFF4F7FC);
+        }
         return y + (config.compactHud ? 17 : 21);
     }
 
@@ -120,7 +131,7 @@ public final class HudRenderer {
                     int remaining = maxDamage - stack.getDamage();
                     int percent = (int) (remaining * 100.0f / maxDamage);
                     int color = percent > 60 ? 0xFF63E6A5 : percent > 25 ? 0xFFFFC857 : 0xFFFF667A;
-                    context.drawTextWithShadow(client.textRenderer, percent + "%", px + 2, y + 17, color);
+                    context.drawTextWithShadow(client.textRenderer, client.textRenderer.trimToWidth(percent + "%", boxWidth - 4), px + 2, y + 17, color);
                 } else {
                     context.drawTextWithShadow(client.textRenderer, "∞", px + 9, y + 17, 0xFFFFFFFF);
                 }
@@ -187,7 +198,8 @@ public final class HudRenderer {
         int x = context.getScaledWindowWidth() - 184;
         int y = config.targetHud && NeonVisualsClient.getTrackedTarget() != null ? 84 : 10;
         int width = 174;
-        int count = Math.min(6, effects.size());
+        int availableRows = Math.max(1, (context.getScaledWindowHeight() - y - 30) / 18);
+        int count = Math.min(Math.min(6, effects.size()), availableRows);
         int height = 18 + count * 18;
         drawHudCard(context, x, y, width, height, config);
         context.drawTextWithShadow(client.textRenderer, "ACTIVE EFFECTS", x + 9, y + 6, config.accentColor);
@@ -202,12 +214,12 @@ public final class HudRenderer {
             String name = effect.getEffectType().value().getName().getString();
             String level = romanLevel(effect.getAmplifier() + 1);
             String duration = effect.isInfinite() ? "∞" : formatDuration(effect.getDuration());
-            int allowed = width - 62;
-            while (client.textRenderer.getWidth(name) > allowed && name.length() > 4) {
-                name = name.substring(0, name.length() - 2) + "…";
-            }
-            context.drawTextWithShadow(client.textRenderer, name + " " + level, x + 16, rowY + 3, 0xFFEAF0F8);
             int durationWidth = client.textRenderer.getWidth(duration);
+            int allowed = Math.max(0, width - 32 - durationWidth);
+            String effectLabel = client.textRenderer.trimToWidth(name + " " + level, allowed);
+            if (!effectLabel.isEmpty()) {
+                context.drawTextWithShadow(client.textRenderer, effectLabel, x + 16, rowY + 3, 0xFFEAF0F8);
+            }
             context.drawTextWithShadow(client.textRenderer, duration, x + width - 8 - durationWidth,
                     rowY + 3, 0xFF9EACC0);
             row++;
